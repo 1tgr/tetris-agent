@@ -13,27 +13,28 @@ namespace Tim.Tetris.UnitTests.Server
         [Test]
         public void ShouldProcessRequest()
         {
-            MockRepository mocks = new MockRepository();
-            HttpContextBase context = mocks.CreateMock<HttpContextBase>();
-            Random random = mocks.CreateMock<Random>();
+            HttpContextBase context = MockRepository.GenerateMock<HttpContextBase>();
+            Random random = MockRepository.GenerateMock<Random>();
+            HttpResponseBase response = MockRepository.GenerateMock<HttpResponseBase>();
 
-            using (mocks.Record())
             {
-                HttpRequestBase request = mocks.CreateMock<HttpRequestBase>();
-                NameValueCollection form = mocks.CreateMock<NameValueCollection>();
-                HttpResponseBase response = mocks.CreateMock<HttpResponseBase>();
-                SetupResult.For(context.Request).Return(request);
-                SetupResult.For(request.Form).Return(form);
-                SetupResult.For(form.Get("board")).Return(".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..");
-                SetupResult.For(request["piece"]).Return("l");
-                SetupResult.For(context.Response).Return(response);
-                Expect.Call(random.Next(3)).Return(0);
-                response.ContentType = "text/plain";
-                response.Write("position=8&degrees=0");
+                context.Stub(c => c.Response).Return(response);
+
+                HttpRequestBase request = MockRepository.GenerateMock<HttpRequestBase>();
+                context.Stub(c => c.Request).Return(request);
+                request.Stub(r => r["piece"]).Return("l");
+
+                NameValueCollection form = MockRepository.GenerateMock<NameValueCollection>();
+                request.Stub(r => r.Form).Return(form);
+                form.Stub(f => f.Get("board")).Return(".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..");
+
+                random.Expect(r => r.Next(3)).Return(0);
             }
 
             Handler.ProcessRequest(context, random);
-            mocks.VerifyAll();
+
+            response.AssertWasCalled(r => r.ContentType = "text/plain");
+            response.AssertWasCalled(r => r.Write("position=8&degrees=0"));
         }
     }
 }
