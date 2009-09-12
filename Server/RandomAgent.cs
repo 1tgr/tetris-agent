@@ -25,9 +25,12 @@ namespace Tim.Tetris.Server
             return new TetrisMove(position, degrees);
         }
 
-        private static int[] GetHeights(string[] board)
+        private static int[] GetDepths(string[] board)
         {
             int[] heights = new int[BoardWidth];
+
+            for (int j = 0; j < BoardWidth; j++)
+                heights[j] = board.Length + 1;
 
             for (int i = board.Length - 1; i >= 0; i--)
             {
@@ -43,23 +46,23 @@ namespace Tim.Tetris.Server
 
         private static int FindLowestStackX(string[] board, int width)
         {
-            int[] heights = GetHeights(board);
+            int[] depths = GetDepths(board);
 
             int pos = 0;
-            int lowest = Int32.MaxValue;
-            for (int x = 0; x <= BoardWidth - width; x++)
+            int deepestOuter = 0;
+            for (int column = 0; column <= BoardWidth - width; column++)
             {
-                int highest = 0;
-                for (int j = 0; j < width; j++)
+                int innerLimit = board.Length + 1;
+                for (int pieceColumn = 0; pieceColumn < width; pieceColumn++)
                 {
-                    if (heights[x + j] > highest)
-                        highest = heights[x + j];
+                    if (depths[column + pieceColumn] < innerLimit)
+                        innerLimit = depths[column + pieceColumn];
                 }
 
-                if (highest < lowest)
+                if (innerLimit > deepestOuter)
                 {
-                    lowest = highest;
-                    pos = x;
+                    deepestOuter = innerLimit;
+                    pos = column;
                 }
             }
 
