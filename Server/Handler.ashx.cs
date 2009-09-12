@@ -14,7 +14,7 @@ namespace Tim.Tetris.Server
         {
             string board = context.Request.Form["board"];//".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..";
             string piece = context.Request["piece"]; //"l";  
-            TetrisMove move = agent.GetNextMove(piece, board);
+            TetrisMove move = agent.MovePiece(board, Pieces.All[piece[0]]);
             context.Response.ContentType = "text/plain";
             context.Response.Write(string.Format("position={0}&degrees={1}", move.Position, move.Degrees));
         }

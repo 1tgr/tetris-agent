@@ -2,6 +2,6 @@ namespace Tim.Tetris.Server
 {
     public interface ITetrisAgent
     {
-        TetrisMove GetNextMove(string piece, string board);
+        TetrisMove MovePiece(string board, IPiece piece);
     }
 }

@@ -28,7 +28,7 @@ namespace Tim.Tetris.UnitTests.Server
                 form.Stub(f => f.Get("board")).Return(Consts.Board);
 
                 TetrisMove move = new TetrisMove(8, 0);
-                agent.Expect(a => a.GetNextMove(Consts.Piece, Consts.Board)).Return(move);
+                agent.Expect(a => a.MovePiece(Consts.Board, Pieces.L)).Return(move);
             }
 
             Handler.ProcessRequest(context, agent);

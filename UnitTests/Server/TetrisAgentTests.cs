@@ -9,12 +9,12 @@ namespace Tim.Tetris.UnitTests.Server
     public class TetrisAgentTests
     {
         [Test]
-        public void ShouldGetNextMove()
+        public void ShouldMovePiece()
         {
             Random random = MockRepository.GenerateStrictMock<Random>();
             TetrisAgent agent = new TetrisAgent(random);
             random.Stub(r => r.Next(3)).Return(0);
-            Assert.AreEqual(new TetrisMove(8, 0), agent.GetNextMove(Consts.Piece, Consts.Board));
+            Assert.AreEqual(new TetrisMove(8, 0), agent.MovePiece(Consts.Board, Pieces.L));
         }
     }
 }
