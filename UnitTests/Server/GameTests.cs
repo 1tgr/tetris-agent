@@ -33,7 +33,7 @@ namespace Tim.Tetris.UnitTests.Server
             char[] pieceCodes = Pieces.All.Keys.ToArray();
             Random random = new Random();
 
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 10; i++)
             {
                 string[] board = Boards.Empty.Split(' ');
                 char pieceCode;
@@ -57,7 +57,7 @@ namespace Tim.Tetris.UnitTests.Server
                         Assert.GreaterOrEqual(move.Position, 0, "Position");
 
                         rotatedPiece = Rotate(piece, move.Degrees);
-                        Assert.Less(move.Position, 10 - rotatedPiece.Width, "Position");
+                        Assert.LessOrEqual(move.Position, 10 - rotatedPiece.Width, "Position");
                     }
                     catch (Exception ex)
                     {

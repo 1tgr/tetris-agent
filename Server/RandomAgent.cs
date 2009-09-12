@@ -47,7 +47,7 @@ namespace Tim.Tetris.Server
 
             int pos = 0;
             int lowest = Int32.MaxValue;
-            for (int x = 0; x < BoardWidth - width; x++)
+            for (int x = 0; x <= BoardWidth - width; x++)
             {
                 int highest = 0;
                 for (int j = 0; j < width; j++)
