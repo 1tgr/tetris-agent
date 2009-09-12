@@ -20,7 +20,7 @@ namespace Tim.Tetris.Server
             for (int i = 0; i < rand; i++)
                 piece = piece.Transpose();
 
-            int position = FindLowestStackX(board.Split(' '), piece.Width);
+            int position = FindDeepestColumn(board.Split(' '), piece.Width);
             int degrees = degreesOptions[rand];
             return new TetrisMove(position, degrees);
         }
@@ -29,44 +29,44 @@ namespace Tim.Tetris.Server
         {
             int[] heights = new int[BoardWidth];
 
-            for (int j = 0; j < BoardWidth; j++)
-                heights[j] = board.Length + 1;
+            for (int column = 0; column < BoardWidth; column++)
+                heights[column] = board.Length + 1;
 
-            for (int i = board.Length - 1; i >= 0; i--)
+            for (int row = board.Length - 1; row >= 0; row--)
             {
-                for (int j = 0; j < BoardWidth; j++)
+                for (int column = 0; column < BoardWidth; column++)
                 {
-                    if (board[i][j] != '.')
-                        heights[j] = i + 1;
+                    if (board[row][column] != '.')
+                        heights[column] = row + 1;
                 }
             }
 
             return heights;
         }
 
-        private static int FindLowestStackX(string[] board, int width)
+        private static int FindDeepestColumn(string[] board, int pieceWidth)
         {
             int[] depths = GetDepths(board);
 
-            int pos = 0;
+            int deepestColumn = 0;
             int deepestOuter = 0;
-            for (int column = 0; column <= BoardWidth - width; column++)
+            for (int column = 0; column <= BoardWidth - pieceWidth; column++)
             {
-                int innerLimit = board.Length + 1;
-                for (int pieceColumn = 0; pieceColumn < width; pieceColumn++)
+                int shallowestInner = board.Length + 1;
+                for (int pieceColumn = 0; pieceColumn < pieceWidth; pieceColumn++)
                 {
-                    if (depths[column + pieceColumn] < innerLimit)
-                        innerLimit = depths[column + pieceColumn];
+                    if (depths[column + pieceColumn] < shallowestInner)
+                        shallowestInner = depths[column + pieceColumn];
                 }
 
-                if (innerLimit > deepestOuter)
+                if (shallowestInner > deepestOuter)
                 {
-                    deepestOuter = innerLimit;
-                    pos = column;
+                    deepestOuter = shallowestInner;
+                    deepestColumn = column;
                 }
             }
 
-            return pos;
+            return deepestColumn;
         }
     }
 }
