@@ -25,15 +25,11 @@ namespace Tim.Tetris.Server
             return new TetrisMove(position, degrees);
         }
 
-        /// <summary>
-        /// find x coordinate of the lowest group of spaces on the board
-        /// </summary>
-        private static int FindLowestStackX(string[] board, int width)
+        private static int[] GetHeights(string[] board)
         {
             int[] heights = new int[BoardWidth];
 
-            Array.Reverse(board);
-            for (int i = 0; i < board.Length; i++)
+            for (int i = board.Length - 1; i >= 0; i--)
             {
                 for (int j = 0; j < BoardWidth; j++)
                 {
@@ -41,6 +37,13 @@ namespace Tim.Tetris.Server
                         heights[j] = i + 1;
                 }
             }
+
+            return heights;
+        }
+
+        private static int FindLowestStackX(string[] board, int width)
+        {
+            int[] heights = GetHeights(board);
 
             int pos = 0;
             int lowest = Int32.MaxValue;

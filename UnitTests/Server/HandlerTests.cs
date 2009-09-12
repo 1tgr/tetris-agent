@@ -18,15 +18,15 @@ namespace Tim.Tetris.UnitTests.Server
 
             HttpRequestBase request = MockRepository.GenerateMock<HttpRequestBase>();
             context.Stub(c => c.Request).Return(request);
-            request.Stub(r => r["piece"]).Return(Consts.Piece);
+            request.Stub(r => r["piece"]).Return("l");
 
             NameValueCollection form = MockRepository.GenerateMock<NameValueCollection>();
             request.Stub(r => r.Form).Return(form);
-            form.Stub(f => f.Get("board")).Return(Consts.Board);
+            form.Stub(f => f.Get("board")).Return(Boards.BottomLeftOccupied);
 
             ITetrisAgent agent = MockRepository.GenerateMock<ITetrisAgent>();
             TetrisMove move = new TetrisMove(8, 0);
-            agent.Expect(a => a.MovePiece(Consts.Board, Pieces.L)).Return(move);
+            agent.Expect(a => a.MovePiece(Boards.BottomLeftOccupied, Pieces.L)).Return(move);
 
             Handler.ProcessRequest(context, agent);
 

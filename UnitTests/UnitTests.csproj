@@ -57,10 +57,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Server\Consts.cs" />
+    <Compile Include="Server\Boards.cs" />
+    <Compile Include="Server\GameTests.cs" />
     <Compile Include="Server\HandlerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Server\TetrisAgentTests.cs" />
+    <Compile Include="Server\RandomAgentTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Server\Server.csproj">

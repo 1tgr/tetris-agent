@@ -25,6 +25,11 @@ namespace Tim.Tetris.Server
             }
         }
 
+        public override string ToString()
+        {
+            return string.Format("Position: {0}, Degrees: {1}", Position, Degrees);
+        }
+
         public int Position { get; private set; }
         public int Degrees { get; private set; }
     }
