@@ -26,7 +26,8 @@ namespace Tim.Tetris.UnitTests.Server
                 SetupResult.For(request["piece"]).Return("l");
                 SetupResult.For(context.Response).Return(response);
                 response.ContentType = "text/plain";
-                response.Write("position=0&degrees=90");
+                response.Write(null);
+                LastCall.IgnoreArguments();
             }
 
             Handler handler = new Handler();
