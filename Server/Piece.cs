@@ -29,11 +29,11 @@ namespace Tim.Tetris.Server
 
         private bool DoCollision(string[] board, int row, int column, char? code)
         {
-            for (int pieceColumn = 0; pieceColumn < array.GetLength(0); pieceColumn++)
+            for (int pieceColumn = 0; pieceColumn < array.GetLength(1); pieceColumn++)
             {
-                for (int pieceRow = 0; pieceRow < array.GetLength(1); pieceRow++)
+                for (int pieceRow = 0; pieceRow < array.GetLength(0); pieceRow++)
                 {
-                    if (array[pieceColumn, pieceRow] == 0)
+                    if (array[pieceRow, pieceColumn] == 0)
                         continue;
 
                     string s = board[row + pieceRow];
@@ -52,7 +52,7 @@ namespace Tim.Tetris.Server
 
         public bool TryUpdateBoard(string[] board, int position, char code)
         {
-            for (int row = board.Length - array.GetLength(1); row >= 0; row--)
+            for (int row = board.Length - array.GetLength(0); row >= 0; row--)
             {
                 if (DoCollision(board, row, position, null))
                     continue;

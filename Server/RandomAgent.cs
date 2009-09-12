@@ -15,7 +15,7 @@ namespace Tim.Tetris.Server
 
         public TetrisMove MovePiece(string board, IPiece piece)
         {
-            int rand = random.Next(3);
+            int rand = random.Next(degreesOptions.Length);
 
             for (int i = 0; i < rand; i++)
                 piece = piece.Transpose();
@@ -47,7 +47,7 @@ namespace Tim.Tetris.Server
 
             int pos = 0;
             int lowest = Int32.MaxValue;
-            for (int x = 0; x <= BoardWidth - width; x++)
+            for (int x = 0; x < BoardWidth - width; x++)
             {
                 int highest = 0;
                 for (int j = 0; j < width; j++)

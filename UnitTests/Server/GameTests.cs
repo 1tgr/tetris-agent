@@ -30,29 +30,41 @@ namespace Tim.Tetris.UnitTests.Server
 
         private static void Test(ITetrisAgent agent)
         {
-            string[] board = Boards.Empty.Split(' ');
             char[] pieceCodes = Pieces.All.Keys.ToArray();
             Random random = new Random();
-            char pieceCode;
-            IPiece rotatedPiece;
-            TetrisMove move;
 
-            do
+            for (int i = 0; i < 100; i++)
             {
-                Console.WriteLine(string.Join(Environment.NewLine, board));
-                Console.WriteLine("----------");
+                string[] board = Boards.Empty.Split(' ');
+                char pieceCode;
+                IPiece rotatedPiece;
+                TetrisMove move;
 
-                int pieceIndex = random.Next(pieceCodes.Length);
-                pieceCode = pieceCodes[pieceIndex];
-                IPiece piece = Pieces.All[pieceCode];
+                do
+                {
+                    Console.WriteLine(string.Join(Environment.NewLine, board));
+                    Console.WriteLine("----------");
 
-                move = agent.MovePiece(string.Join(" ", board), piece);
-                Assert.GreaterOrEqual(move.Position, 0, "Position");
-                Assert.LessOrEqual(move.Position, 10 - piece.Width, "Position");
-                CollectionAssert.Contains(new[] { 0, 90, 180, 270 }, move.Degrees, "Degrees");
+                    int pieceIndex = random.Next(pieceCodes.Length);
+                    pieceCode = pieceCodes[pieceIndex];
 
-                rotatedPiece = Rotate(piece, move.Degrees);
-            } while (rotatedPiece.TryUpdateBoard(board, move.Position, pieceCode));
+                    try
+                    {
+                        IPiece piece = Pieces.All[pieceCode];
+
+                        move = agent.MovePiece(string.Join(" ", board), piece);
+                        CollectionAssert.Contains(new[] { 0, 90, 180, 270 }, move.Degrees, "Degrees");
+                        Assert.GreaterOrEqual(move.Position, 0, "Position");
+
+                        rotatedPiece = Rotate(piece, move.Degrees);
+                        Assert.Less(move.Position, 10 - rotatedPiece.Width, "Position");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new AssertionException(ex.Message + " Piece is " + char.ToUpper(pieceCode) + ".", ex);
+                    }
+                } while (rotatedPiece.TryUpdateBoard(board, move.Position, pieceCode));
+            }
         }
 
         [Test]
