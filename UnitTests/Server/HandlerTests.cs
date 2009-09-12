@@ -13,23 +13,20 @@ namespace Tim.Tetris.UnitTests.Server
         public void ShouldProcessRequest()
         {
             HttpContextBase context = MockRepository.GenerateMock<HttpContextBase>();
-            ITetrisAgent agent = MockRepository.GenerateMock<ITetrisAgent>();
             HttpResponseBase response = MockRepository.GenerateMock<HttpResponseBase>();
+            context.Stub(c => c.Response).Return(response);
 
-            {
-                context.Stub(c => c.Response).Return(response);
+            HttpRequestBase request = MockRepository.GenerateMock<HttpRequestBase>();
+            context.Stub(c => c.Request).Return(request);
+            request.Stub(r => r["piece"]).Return(Consts.Piece);
 
-                HttpRequestBase request = MockRepository.GenerateMock<HttpRequestBase>();
-                context.Stub(c => c.Request).Return(request);
-                request.Stub(r => r["piece"]).Return(Consts.Piece);
+            NameValueCollection form = MockRepository.GenerateMock<NameValueCollection>();
+            request.Stub(r => r.Form).Return(form);
+            form.Stub(f => f.Get("board")).Return(Consts.Board);
 
-                NameValueCollection form = MockRepository.GenerateMock<NameValueCollection>();
-                request.Stub(r => r.Form).Return(form);
-                form.Stub(f => f.Get("board")).Return(Consts.Board);
-
-                TetrisMove move = new TetrisMove(8, 0);
-                agent.Expect(a => a.MovePiece(Consts.Board, Pieces.L)).Return(move);
-            }
+            ITetrisAgent agent = MockRepository.GenerateMock<ITetrisAgent>();
+            TetrisMove move = new TetrisMove(8, 0);
+            agent.Expect(a => a.MovePiece(Consts.Board, Pieces.L)).Return(move);
 
             Handler.ProcessRequest(context, agent);
 

@@ -7,7 +7,7 @@ namespace Tim.Tetris.Server
     {
         public void ProcessRequest(HttpContext context)
         {
-            ProcessRequest(new HttpContextWrapper(context), new TetrisAgent(new Random()));
+            ProcessRequest(new HttpContextWrapper(context), new RandomAgent(new Random()));
         }
 
         public static void ProcessRequest(HttpContextBase context, ITetrisAgent agent)

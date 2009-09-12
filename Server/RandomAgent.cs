@@ -2,13 +2,13 @@ using System;
 
 namespace Tim.Tetris.Server
 {
-    public class TetrisAgent : ITetrisAgent
+    public class RandomAgent : ITetrisAgent
     {
         private static readonly int[] degreesOptions = new[] { 0, 90, 180, 270 };
         private const int BoardWidth = 10;
         private readonly Random random;
 
-        public TetrisAgent(Random random)
+        public RandomAgent(Random random)
         {
             this.random = random;
         }
