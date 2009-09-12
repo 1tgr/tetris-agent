@@ -17,21 +17,18 @@ namespace Tim.Tetris.UnitTests.Server
             HttpResponseBase response = MockRepository.GenerateMock<HttpResponseBase>();
 
             {
-                const string board = ".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..";
-                const string piece = "l";
-
                 context.Stub(c => c.Response).Return(response);
 
                 HttpRequestBase request = MockRepository.GenerateMock<HttpRequestBase>();
                 context.Stub(c => c.Request).Return(request);
-                request.Stub(r => r["piece"]).Return(piece);
+                request.Stub(r => r["piece"]).Return(Consts.Piece);
 
                 NameValueCollection form = MockRepository.GenerateMock<NameValueCollection>();
                 request.Stub(r => r.Form).Return(form);
-                form.Stub(f => f.Get("board")).Return(board);
+                form.Stub(f => f.Get("board")).Return(Consts.Board);
 
                 TetrisMove move = new TetrisMove(8, 0);
-                agent.Expect(a => a.GetNextMove(piece, board)).Return(move);
+                agent.Expect(a => a.GetNextMove(Consts.Piece, Consts.Board)).Return(move);
             }
 
             Handler.ProcessRequest(context, agent);
