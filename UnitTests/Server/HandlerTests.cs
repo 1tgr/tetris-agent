@@ -1,4 +1,5 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Specialized;
 using System.Web;
 using NUnit.Framework;
 using Rhino.Mocks;
@@ -14,6 +15,7 @@ namespace Tim.Tetris.UnitTests.Server
         {
             MockRepository mocks = new MockRepository();
             HttpContextBase context = mocks.CreateMock<HttpContextBase>();
+            Random random = mocks.CreateMock<Random>();
 
             using (mocks.Record())
             {
@@ -25,13 +27,12 @@ namespace Tim.Tetris.UnitTests.Server
                 SetupResult.For(form.Get("board")).Return(".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..");
                 SetupResult.For(request["piece"]).Return("l");
                 SetupResult.For(context.Response).Return(response);
+                Expect.Call(random.Next(3)).Return(0);
                 response.ContentType = "text/plain";
-                response.Write(null);
-                LastCall.IgnoreArguments();
+                response.Write("position=8&degrees=0");
             }
 
-            Handler handler = new Handler();
-            handler.ProcessRequest(context);
+            Handler.ProcessRequest(context, random);
             mocks.VerifyAll();
         }
     }

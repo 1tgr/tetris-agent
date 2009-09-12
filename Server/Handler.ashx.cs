@@ -13,32 +13,31 @@ namespace Tim.Tetris.Server
         private static readonly Dictionary<char, int[,]> pieces =
             new Dictionary<char, int[,]>
                 {
-                    { 'i', new int[,] { { 1 }, { 1 }, { 1 }, { 1 } } },
-                    { 'j', new int[,] { { 0, 1 }, { 0, 1 }, { 1, 1 } } },
-                    { 'l', new int[,] { { 1, 0 }, { 1, 0 }, { 1, 1 } } },
-                    { 'o', new int[,] { { 1, 1 }, { 1, 1 } } },
-                    { 's', new int[,] { { 0, 1, 1 }, { 1, 1, 0 } } },
-                    { 't', new int[,] { { 1, 1, 1 }, { 0, 1, 0 } } },
-                    { 'z', new int[,] { { 1, 1, 0 }, { 0, 1, 1 } } }
+                    { 'i', new[,] { { 1 }, { 1 }, { 1 }, { 1 } } },
+                    { 'j', new[,] { { 0, 1 }, { 0, 1 }, { 1, 1 } } },
+                    { 'l', new[,] { { 1, 0 }, { 1, 0 }, { 1, 1 } } },
+                    { 'o', new[,] { { 1, 1 }, { 1, 1 } } },
+                    { 's', new[,] { { 0, 1, 1 }, { 1, 1, 0 } } },
+                    { 't', new[,] { { 1, 1, 1 }, { 0, 1, 0 } } },
+                    { 'z', new[,] { { 1, 1, 0 }, { 0, 1, 1 } } }
                 };
 
         private const int BoardWidth = 10;
 
         public void ProcessRequest(HttpContext context)
         {
-            ProcessRequest(new HttpContextWrapper(context));
+            ProcessRequest(new HttpContextWrapper(context), new Random());
         }
 
-        public void ProcessRequest(HttpContextBase context)
+        public static void ProcessRequest(HttpContextBase context, Random random)
         {
             string board = context.Request.Form["board"];//".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..";
             string piece = context.Request["piece"]; //"l";  
             int[,] pieceArray = pieces[piece[0]];
 
 
-            Random r = new Random();
             int[] degreesOptions = { 0, 90, 180, 270 };
-            int rand = r.Next(3);
+            int rand = random.Next(3);
             int degrees = degreesOptions[rand];
 
             //rotate the piece a random number of times
@@ -48,15 +47,7 @@ namespace Tim.Tetris.Server
             }
 
             int width = pieceArray.GetUpperBound(1) + 1;
-            int position = FindLowestStackX(board.Split(new char[] { ' ' }), width);
-
-            Debug.WriteLine("Board: " + Environment.NewLine + board.Replace(" ", Environment.NewLine));
-            Debug.WriteLine("Piece: " + piece);
-            Debug.WriteLine("Degrees: " + degrees);
-            Debug.WriteLine("Width: " + width);
-            Debug.WriteLine("Position: " + position);
-            Debug.WriteLine("--------------------------------------");
-
+            int position = FindLowestStackX(board.Split(' '), width);
 
             context.Response.ContentType = "text/plain";
             context.Response.Write(string.Format("position={0}&degrees={1}", position, degrees));
@@ -66,7 +57,7 @@ namespace Tim.Tetris.Server
         /// <summary>
         /// rotate the piece array around
         /// </summary>
-        private int[,] TransposeArray(int[,] x)
+        private static int[,] TransposeArray(int[,] x)
         {
             int[,] result = new int[x.GetUpperBound(1) + 1, x.GetUpperBound(0) + 1];
             int i, j;
@@ -83,7 +74,7 @@ namespace Tim.Tetris.Server
         /// <summary>
         /// find x coordinate of the lowest group of spaces on the board
         /// </summary>
-        private int FindLowestStackX(string[] board, int width)
+        private static int FindLowestStackX(string[] board, int width)
         {
             int[] heights = new int[BoardWidth];
             int pos = 0;
