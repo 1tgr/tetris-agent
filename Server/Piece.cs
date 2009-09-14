@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Tim.Tetris.Server
 {
     public class Piece : IPiece
@@ -7,6 +9,27 @@ namespace Tim.Tetris.Server
         public Piece(int[,] array)
         {
             this.array = array;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != typeof(Piece)) return false;
+
+            Piece other = (Piece) obj;
+            if (other.array.GetLength(0) != array.GetLength(0))
+                return false;
+
+            if (other.array.GetLength(1) != array.GetLength(1))
+                return false;
+
+            return other.array.Cast<int>().SequenceEqual(array.Cast<int>());
+        }
+
+        public override int GetHashCode()
+        {
+            return array.Cast<int>().Aggregate(0, (hashCode, item) => (hashCode * 29) + item.GetHashCode());
         }
 
         private static T[,] TransposeArray<T>(T[,] x)
@@ -27,7 +50,7 @@ namespace Tim.Tetris.Server
             return new Piece(TransposeArray(array));
         }
 
-        private bool DoCollision(string[] board, int row, int column, char? code)
+        private bool DoCollision(ref IBoard board, int row, int column, char? code)
         {
             for (int pieceColumn = 0; pieceColumn < array.GetLength(1); pieceColumn++)
             {
@@ -36,28 +59,31 @@ namespace Tim.Tetris.Server
                     if (array[pieceRow, pieceColumn] == 0)
                         continue;
 
-                    string s = board[row + pieceRow];
+                    string boardCode = board[row + pieceRow];
                     if (code == null)
                     {
-                        if (s[column + pieceColumn] != '.')
+                        if (boardCode[column + pieceColumn] != '.')
                             return true;
                     }
                     else
-                        board[row + pieceRow] = s.Substring(0, column + pieceColumn) + code + s.Substring(column + pieceColumn + 1);
+                    {
+                        string newBoardCode = boardCode.Substring(0, column + pieceColumn) + code + boardCode.Substring(column + pieceColumn + 1);
+                        board = board.Update(row + pieceRow, newBoardCode);
+                    }
                 }
             }
 
             return false;
         }
 
-        public bool TryUpdateBoard(string[] board, int position, char code)
+        public bool TryUpdateBoard(ref IBoard board, int position, char code)
         {
-            for (int row = board.Length - array.GetLength(0); row >= 0; row--)
+            for (int row = board.Height - array.GetLength(0); row >= 0; row--)
             {
-                if (DoCollision(board, row, position, null))
+                if (DoCollision(ref board, row, position, null))
                     continue;
 
-                DoCollision(board, row, position, code);
+                DoCollision(ref board, row, position, code);
                 return true;
             }
 

@@ -28,21 +28,23 @@ namespace Tim.Tetris.UnitTests.Server
             return piece;
         }
 
-        private static void Test(ITetrisAgent agent)
+        private static void Test(IPlayer player, int count)
         {
             char[] pieceCodes = Pieces.All.Keys.ToArray();
             Random random = new Random();
 
-            for (int i = 0; i < 10; i++)
+            for (int game = 0; game < count; game++)
             {
-                string[] board = Boards.Empty.Split(' ');
+                IBoard board = Board.Empty;
                 char pieceCode;
                 IPiece rotatedPiece;
                 TetrisMove move;
 
                 do
                 {
-                    Console.WriteLine(string.Join(Environment.NewLine, board));
+                    board = board.Collapse();
+
+                    Console.WriteLine(board);
                     Console.WriteLine("----------");
 
                     int pieceIndex = random.Next(pieceCodes.Length);
@@ -52,7 +54,7 @@ namespace Tim.Tetris.UnitTests.Server
                     {
                         IPiece piece = Pieces.All[pieceCode];
 
-                        move = agent.MovePiece(string.Join(" ", board), piece);
+                        move = player.MovePiece(board, piece);
                         CollectionAssert.Contains(new[] { 0, 90, 180, 270 }, move.Degrees, "Degrees");
                         Assert.GreaterOrEqual(move.Position, 0, "Position");
 
@@ -63,14 +65,14 @@ namespace Tim.Tetris.UnitTests.Server
                     {
                         throw new AssertionException(ex.Message + " Piece is " + char.ToUpper(pieceCode) + ".", ex);
                     }
-                } while (rotatedPiece.TryUpdateBoard(board, move.Position, pieceCode));
+                } while (rotatedPiece.TryUpdateBoard(ref board, move.Position, pieceCode));
             }
         }
 
         [Test]
         public void RandomAgent()
         {
-            Test(new RandomAgent(new Random(0)));
+            Test(new RandomPlayer(new Random(0)), 1);
         }
     }
 }

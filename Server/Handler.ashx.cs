@@ -7,14 +7,16 @@ namespace Tim.Tetris.Server
     {
         public void ProcessRequest(HttpContext context)
         {
-            ProcessRequest(new HttpContextWrapper(context), new RandomAgent(new Random()));
+            ProcessRequest(new HttpContextWrapper(context), new RandomPlayer(new Random()));
         }
 
-        public static void ProcessRequest(HttpContextBase context, ITetrisAgent agent)
+        public static void ProcessRequest(HttpContextBase context, IPlayer player)
         {
-            string board = context.Request.Form["board"];//".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..";
-            string piece = context.Request["piece"]; //"l";  
-            TetrisMove move = agent.MovePiece(board, Pieces.All[piece[0]]);
+            string boardCode = context.Request.Form["board"];//".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..";
+            string pieceCode = context.Request["piece"]; //"l";  
+            IBoard board = Board.Parse(boardCode);
+            IPiece piece = Pieces.All[pieceCode[0]];
+            TetrisMove move = player.MovePiece(board, piece);
             context.Response.ContentType = "text/plain";
             context.Response.Write(string.Format("position={0}&degrees={1}", move.Position, move.Degrees));
         }

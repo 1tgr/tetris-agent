@@ -1,4 +1,5 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Specialized;
 using System.Web;
 using NUnit.Framework;
 using Rhino.Mocks;
@@ -22,13 +23,12 @@ namespace Tim.Tetris.UnitTests.Server
 
             NameValueCollection form = MockRepository.GenerateMock<NameValueCollection>();
             request.Stub(r => r.Form).Return(form);
-            form.Stub(f => f.Get("board")).Return(Boards.BottomLeftOccupied);
+            form.Stub(f => f.Get("board")).Return(Boards.BottomLeftOccupied.ToString().Replace(Environment.NewLine, " "));
 
-            ITetrisAgent agent = MockRepository.GenerateMock<ITetrisAgent>();
-            TetrisMove move = new TetrisMove(8, 0);
-            agent.Expect(a => a.MovePiece(Boards.BottomLeftOccupied, Pieces.L)).Return(move);
+            IPlayer player = MockRepository.GenerateStrictMock<IPlayer>();
+            player.Expect(a => a.MovePiece(Boards.BottomLeftOccupied, Pieces.L)).Return(new TetrisMove(8, 0));
 
-            Handler.ProcessRequest(context, agent);
+            Handler.ProcessRequest(context, player);
 
             response.AssertWasCalled(r => r.ContentType = "text/plain");
             response.AssertWasCalled(r => r.Write("position=8&degrees=0"));
