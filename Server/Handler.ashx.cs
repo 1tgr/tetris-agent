@@ -15,7 +15,7 @@ namespace Tim.Tetris.Server
             string boardCode = context.Request.Form["board"];//".......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... .......... zzzzzzzz..";
             string pieceCode = context.Request["piece"]; //"l";  
             IBoard board = Board.Parse(boardCode);
-            IPiece piece = Pieces.All[pieceCode[0]];
+            Piece piece = (Piece) Enum.Parse(typeof(Piece), new string(char.ToUpper(pieceCode[0]), 1));
             TetrisMove move = player.MovePiece(board, piece);
             context.Response.ContentType = "text/plain";
             context.Response.Write(string.Format("position={0}&degrees={1}", move.Position, move.Degrees));

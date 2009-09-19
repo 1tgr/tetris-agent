@@ -26,7 +26,7 @@ namespace Tim.Tetris.UnitTests.Server
             form.Stub(f => f.Get("board")).Return(Boards.BottomLeftOccupied.ToString().Replace(Environment.NewLine, " "));
 
             IPlayer player = MockRepository.GenerateStrictMock<IPlayer>();
-            player.Expect(a => a.MovePiece(Boards.BottomLeftOccupied, Pieces.L)).Return(new TetrisMove(8, 0));
+            player.Expect(a => a.MovePiece(Boards.BottomLeftOccupied, Piece.L)).Return(new TetrisMove(8, 0));
 
             Handler.ProcessRequest(context, player);
 

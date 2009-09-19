@@ -14,7 +14,7 @@ namespace Tim.Tetris.UnitTests.Server
             Random random = MockRepository.GenerateStrictMock<Random>();
             RandomPlayer player = new RandomPlayer(random);
             random.Stub(r => r.Next(4)).Return(0);
-            Assert.AreEqual(new TetrisMove(0, 0), player.MovePiece(Board.Empty, Pieces.O));
+            Assert.AreEqual(new TetrisMove(0, 0), player.MovePiece(Board.Empty, Piece.O));
         }
 
         [Test]
@@ -23,7 +23,7 @@ namespace Tim.Tetris.UnitTests.Server
             Random random = MockRepository.GenerateStrictMock<Random>();
             RandomPlayer player = new RandomPlayer(random);
             random.Stub(r => r.Next(4)).Return(0);
-            Assert.AreEqual(new TetrisMove(8, 0), player.MovePiece(Boards.BottomLeftOccupied, Pieces.O));
+            Assert.AreEqual(new TetrisMove(8, 0), player.MovePiece(Boards.BottomLeftOccupied, Piece.O));
         }
     }
 }

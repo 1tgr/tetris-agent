@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Server\Boards.cs" />
+    <Compile Include="Server\BoardTests.cs" />
     <Compile Include="Server\GameTests.cs" />
     <Compile Include="Server\HandlerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
