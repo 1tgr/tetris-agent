@@ -33,7 +33,7 @@ namespace Tim.Tetris.UnitTests.Server
                     try
                     {
                         move = player.MovePiece(board, pieceCode);
-                        CollectionAssert.Contains(new[] { 0, 90, 180, 270 }, move.Degrees, "Degrees");
+                        CollectionAssert.Contains(Board.DegreesOptions, move.Degrees, "Degrees");
                         Assert.GreaterOrEqual(move.Position, 0, "Position");
 
                         int[,] pieceData = PieceData.All[pieceCode];
