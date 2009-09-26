@@ -127,3 +127,56 @@ module Game =
                 (score + collapsedRows, collapse'' board firstRow collapsedRows)
 
         collapse' board 0 0 0 0
+
+    let randomPlayer (random : Random) =
+        let getDepths board =
+        {
+            int[] heights = new int[Board.Width];
+
+            for (int column = 0; column < Board.Width; column++)
+                heights[column] = board.Height + 1;
+
+            for (int row = board.Height - 1; row >= 0; row--)
+            {
+                for (int column = 0; column < Board.Width; column++)
+                {
+                    if (board[row][column] != '.')
+                        heights[column] = row + 1;
+                }
+            }
+
+            return heights;
+        }
+
+        let findDeepestColumn board pieceWidth =
+            let depths = getDepths board
+
+            int deepestColumn = 0;
+            int deepestOuter = 0;
+            for (int column = 0; column <= Board.Width - pieceWidth; column++)
+            {
+                int shallowestInner = board.Height + 1;
+                for (int pieceColumn = 0; pieceColumn < pieceWidth; pieceColumn++)
+                {
+                    if (depths[column + pieceColumn] < shallowestInner)
+                        shallowestInner = depths[column + pieceColumn];
+                }
+
+                if (shallowestInner > deepestOuter)
+                {
+                    deepestOuter = shallowestInner;
+                    deepestColumn = column;
+                }
+            }
+
+            return deepestColumn;
+        }
+        
+        let movePiece board piece =
+            let rand = random.Next(Array.length degreesOptions)
+            let degrees = degreesOptions.[rand]
+            let { Width = width } = rotate PieceData.All[piece] degrees
+            let position = findDeepestColumn board width
+            TetrisMove (position, degrees)
+
+        movePiece

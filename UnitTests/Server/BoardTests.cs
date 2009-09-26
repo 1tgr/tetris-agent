@@ -1,7 +1,5 @@
 ﻿using System.Linq;
-using Microsoft.FSharp.Core;
 using NUnit.Framework;
-using Tim.Tetris.Core;
 using Tim.Tetris.Server;
 
 namespace Tim.Tetris.UnitTests.Server
@@ -12,19 +10,19 @@ namespace Tim.Tetris.UnitTests.Server
         [Test]
         public void GivenEmptyBoard_CollapseShouldProduceEmptyBoard()
         {
-            Game.Board board = Game.empty;
-            Tuple<int, Game.Board> t = Game.collapse(board);
-            Assert.AreEqual(0, t.Item1, "Score");
-            Assert.AreEqual(Game.empty, t.Item2);
+            Board board = Board.Empty;
+            int score;
+            Assert.AreEqual(Board.Empty, board.Collapse(out score));
+            Assert.AreEqual(0, score, "Score");
         }
 
         [Test]
         public void GivenFullBoard_CollapseShouldProduceEmptyBoard()
         {
-            Game.Board board = Game.parse(string.Join(" ", Enumerable.Repeat(new string('I', Board.Width), 20).ToArray()));
-            Tuple<int, Game.Board> t = Game.collapse(board);
-            Assert.AreEqual(20, t.Item1, "Score");
-            Assert.AreEqual(Game.empty, t.Item2);
+            Board board = new Board(Enumerable.Repeat(new string('I', Board.Width), 20).ToArray());
+            int score;
+            Assert.AreEqual(Board.Empty, board.Collapse(out score));
+            Assert.AreEqual(20, score, "Score");
         }
     }
 }

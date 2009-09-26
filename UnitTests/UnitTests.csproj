@@ -66,10 +66,6 @@
     <Compile Include="Server\RandomPlayerTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Core\Core.fsproj">
-      <Project>{A20426A5-4A78-4160-A935-3623CB874AAF}</Project>
-      <Name>Core</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Server\Server.csproj">
       <Project>{93C56E6E-9051-43D3-AD0E-17F76E426960}</Project>
       <Name>Server</Name>
