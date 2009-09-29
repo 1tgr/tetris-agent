@@ -20,28 +20,9 @@ namespace Tim.Tetris.Server
             return new TetrisMove(position, degrees);
         }
 
-        private static int[] GetDepths(IBoard board)
-        {
-            int[] heights = new int[Board.Width];
-
-            for (int column = 0; column < Board.Width; column++)
-                heights[column] = board.Height + 1;
-
-            for (int row = board.Height - 1; row >= 0; row--)
-            {
-                for (int column = 0; column < Board.Width; column++)
-                {
-                    if (board[row][column] != '.')
-                        heights[column] = row + 1;
-                }
-            }
-
-            return heights;
-        }
-
         private static int FindDeepestColumn(IBoard board, int pieceWidth)
         {
-            int[] depths = GetDepths(board);
+            int[] depths = Board.GetDepths(board);
 
             int deepestColumn = 0;
             int deepestOuter = 0;

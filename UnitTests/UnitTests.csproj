@@ -58,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Evolver.cs" />
     <Compile Include="Server\Boards.cs" />
     <Compile Include="Server\BoardTests.cs" />
     <Compile Include="Server\GameTests.cs" />

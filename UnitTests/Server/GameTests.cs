@@ -7,9 +7,10 @@ namespace Tim.Tetris.UnitTests.Server
     [TestFixture]
     public class GameTests
     {
+        private static readonly Piece[] Pieces = (Piece[]) Enum.GetValues(typeof(Piece));
+
         private static void Test(IPlayer player, int count)
         {
-            Piece[] pieces = (Piece[]) Enum.GetValues(typeof(Piece));
             Random random = new Random();
 
             for (int game = 0; game < count; game++)
@@ -27,8 +28,8 @@ namespace Tim.Tetris.UnitTests.Server
                     Console.WriteLine(board);
                     Console.WriteLine("---------- {0}", score);
 
-                    int pieceIndex = random.Next(pieces.Length);
-                    pieceCode = pieces[pieceIndex];
+                    int pieceIndex = random.Next(Pieces.Length);
+                    pieceCode = Pieces[pieceIndex];
 
                     try
                     {

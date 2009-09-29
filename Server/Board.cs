@@ -115,6 +115,25 @@ namespace Tim.Tetris.Server
             return false;
         }
 
+        public static int[] GetDepths(IBoard board)
+        {
+            int[] heights = new int[Width];
+
+            for (int column = 0; column < Width; column++)
+                heights[column] = board.Height + 1;
+
+            for (int row = board.Height - 1; row >= 0; row--)
+            {
+                for (int column = 0; column < Width; column++)
+                {
+                    if (board[row][column] != '.')
+                        heights[column] = row + 1;
+                }
+            }
+
+            return heights;
+        }
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
