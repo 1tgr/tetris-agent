@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using Tim.Tetris.Server;
 
@@ -23,10 +24,23 @@ namespace Tim.Tetris.UnitTests
             {
                 double[,] matrix = new double[rows,columns];
 
-                for (int row = 0; row < rows; row++)
+                for (int row = 0; row < matrix.GetLength(0); row++)
                 {
-                    for (int column = 0; column < columns; column++)
+                    for (int column = 0; column < matrix.GetLength(1); column++)
                         matrix[row, column] = (random.NextDouble() * 2) - 1;
+                }
+
+                return matrix;
+            }
+
+            private static double[,] MutateMatrix(Random random, double[,] other, double amount)
+            {
+                double[,] matrix = new double[other.GetLength(0), other.GetLength(1)];
+
+                for (int row = 0; row < matrix.GetLength(0); row++)
+                {
+                    for (int column = 0; column < matrix.GetLength(1); column++)
+                        matrix[row, column] = other[row, column] + ((random.NextDouble() * 2) - 1) * amount;
                 }
 
                 return matrix;
@@ -35,6 +49,11 @@ namespace Tim.Tetris.UnitTests
             public static Individual CreateRandom(Random random)
             {
                 return new Individual(CreateRandomMatrix(random, 3, 10), CreateRandomMatrix(random, 3, 10));
+            }
+
+            public Individual Mutate(Random random)
+            {
+                return new Individual(MutateMatrix(random, positionMatrix, 0.1), MutateMatrix(random, rotationMatrix, 0.1));
             }
 
             public double[,] PositionMatrix
@@ -72,58 +91,82 @@ namespace Tim.Tetris.UnitTests
             return new TetrisMove(normalizedPosition, Board.DegreesOptions[normalizedRotation]);
         }
 
-        private static int Play(Random random, Individual individual)
+        private static double Play(Random random, Individual individual)
         {
-            IBoard board = Board.Empty;
-            Piece pieceCode;
-            int[,] rotatedPieceData;
-            TetrisMove move;
-            int totalScore = 0;
+            int totalScore = 1;
+            int turns = 0;
 
-            do
+            for (int game = 0; game < 100; game++)
             {
-                int score;
-                board = board.Collapse(out score);
-                totalScore += score;
+                IBoard board = Board.Empty;
+                Piece pieceCode;
+                int[,] rotatedPieceData;
+                TetrisMove move;
 
-                pieceCode = Pieces[random.Next(Pieces.Length)];
-
-                try
+                do
                 {
-                    move = MovePiece(board, pieceCode, individual);
-                    CollectionAssert.Contains(Board.DegreesOptions, move.Degrees, "Degrees");
-                    Assert.GreaterOrEqual(move.Position, 0, "Position");
+                    int score;
+                    board = board.Collapse(out score);
+                    totalScore += score;
+                    turns++;
 
-                    int[,] pieceData = PieceData.All[pieceCode];
-                    rotatedPieceData = Board.Rotate(pieceData, move.Degrees);
-                    Assert.LessOrEqual(move.Position, 10 - rotatedPieceData.GetLength(1), "Position");
-                }
-                catch (Exception ex)
-                {
-                    throw new AssertionException(ex.Message + " Piece is " + pieceCode + ".", ex);
-                }
-            } while (Board.TryUpdateBoard(rotatedPieceData, ref board, move.Position, char.ToLower(pieceCode.ToString()[0])));
+                    pieceCode = Pieces[random.Next(Pieces.Length)];
 
-            return totalScore;
+                    try
+                    {
+                        move = MovePiece(board, pieceCode, individual);
+                        CollectionAssert.Contains(Board.DegreesOptions, move.Degrees, "Degrees");
+                        Assert.GreaterOrEqual(move.Position, 0, "Position");
+
+                        int[,] pieceData = PieceData.All[pieceCode];
+                        rotatedPieceData = Board.Rotate(pieceData, move.Degrees);
+                        Assert.LessOrEqual(move.Position, 10 - rotatedPieceData.GetLength(1), "Position");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new AssertionException(ex.Message + " Piece is " + pieceCode + ".", ex);
+                    }
+                } while (Board.TryUpdateBoard(rotatedPieceData, ref board, move.Position, char.ToLower(pieceCode.ToString()[0])));
+            }
+
+            return ((double) totalScore) / turns;
         }
 
         [Test]
         public void Evolve()
         {
             Random random = new Random(0);
-            Dictionary<Individual, int> population = new Dictionary<Individual, int>();
-            int attempts = 0;
+            Dictionary<Individual, double> population = new Dictionary<Individual, double>();
 
-            while (population.Count < 10)
+            while (population.Count < 100)
             {
                 Individual individual = Individual.CreateRandom(random);
-                int score = Play(random, individual);
-                if (score > 0)
-                    population.Add(individual, score);
+                double score = Play(new Random(0), individual);
+                population.Add(individual, score);
+            }
 
-                attempts++;
-                if ((attempts % 1000) == 0)
-                    Console.WriteLine("{0} attempts", attempts);
+            for (int generation = 0; generation < 1000; generation++)
+            {
+                KeyValuePair<Individual, double> fittest =
+                    population
+                        .OrderByDescending(p => p.Value)
+                        .First();
+
+                Console.WriteLine(
+                    "Generation {0}: best {1}, average {2}", 
+                    generation, 
+                    fittest.Value,
+                    population.Values.Average());
+
+                population.Clear();
+                population.Add(fittest.Key, fittest.Value);
+
+                while (population.Count < 100)
+                {
+                    Individual individual = fittest.Key.Mutate(random);
+                    double score = Play(new Random(0), individual);
+                    population.Add(individual, score);
+                }
             }
         }
     }
