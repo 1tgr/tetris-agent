@@ -6,7 +6,7 @@ using Tim.Tetris.Server;
 
 namespace Tim.Tetris.UnitTests
 {
-    [TestFixture]
+    [TestFixture, Explicit]
     public class Evolver
     {
         private class Individual
