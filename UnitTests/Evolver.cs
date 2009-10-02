@@ -91,8 +91,9 @@ namespace Tim.Tetris.UnitTests
             return new TetrisMove(normalizedPosition, Board.DegreesOptions[normalizedRotation]);
         }
 
-        private static double Play(Random random, Individual individual)
+        private static double Play(Individual individual)
         {
+            Random random = new Random(0);
             int totalScore = 1;
             int turns = 0;
 
@@ -141,9 +142,11 @@ namespace Tim.Tetris.UnitTests
             while (population.Count < 100)
             {
                 Individual individual = Individual.CreateRandom(random);
-                double score = Play(new Random(0), individual);
+                double score = Play(individual);
                 population.Add(individual, score);
             }
+
+            double? previousBest = null;
 
             for (int generation = 0; generation < 1000; generation++)
             {
@@ -152,11 +155,16 @@ namespace Tim.Tetris.UnitTests
                         .OrderByDescending(p => p.Value)
                         .First();
 
-                Console.WriteLine(
-                    "Generation {0}: best {1}, average {2}", 
-                    generation, 
-                    fittest.Value,
-                    population.Values.Average());
+                if (previousBest == null || fittest.Value > previousBest)
+                {
+                    previousBest = fittest.Value;
+
+                    Console.WriteLine(
+                        "Generation {0}: best {1}, average {2}",
+                        generation,
+                        fittest.Value,
+                        population.Values.Average());
+                }
 
                 population.Clear();
                 population.Add(fittest.Key, fittest.Value);
@@ -164,7 +172,7 @@ namespace Tim.Tetris.UnitTests
                 while (population.Count < 100)
                 {
                     Individual individual = fittest.Key.Mutate(random);
-                    double score = Play(new Random(0), individual);
+                    double score = Play(individual);
                     population.Add(individual, score);
                 }
             }
