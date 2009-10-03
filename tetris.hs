@@ -26,15 +26,17 @@ collapse board =
         collapseInner prior [ ] = 
             reverse prior
 
-collided :: Piece -> Board -> Int -> Maybe Int
-collided piece board position =
-    collidedInner 0 $ map (drop position) $ board
+dropPiece :: Piece -> Board -> Int -> Maybe Int
+dropPiece piece board position =
+    case dropPieceInner (-2) $ map (drop position) $ emptyRow : emptyRow : board of
+    row | row >= 0 -> Just row
+    _ -> Nothing
     where
-        collidedInner row boardInner @ (_ : bs) =
+        dropPieceInner row boardInner @ (_ : bs) =
             if rowsCollided piece boardInner then
-                Just row
+                row
             else
-                collidedInner (row + 1) bs
+                dropPieceInner (row + 1) bs
             where
                 rowsCollided (p : ps) (b : bs) =
                     cellsCollided p b || rowsCollided ps bs
@@ -47,11 +49,11 @@ collided piece board position =
                 rowsCollided [ ] _ = False
                 rowsCollided _ [ ] = False
 
-        collidedInner row [ ] = Just (row - length piece + 1)
+        dropPieceInner row [ ] = row - length piece + 1
 
 updateBoard :: Piece -> Board -> Int -> Maybe Board
 updateBoard piece board position = do
-    row <- collided piece board position
+    row <- dropPiece piece board position
     return $ updateBoardInner row
     where
         updateBoardInner row =
@@ -77,11 +79,12 @@ updateBoard piece board position = do
 givenEmptyBoard_CollapseShouldProduceEmptyBoard = collapse emptyBoard @?= emptyBoard
 givenFullBoard_CollapseShouldProduceEmptyBoard = collapse fullBoard @?= emptyBoard
 givenPartialBoard_CollapseShouldRemoveFullRows = collapse partialBoard @?= (replicate 19 emptyRow) ++ [ partialRow ]
-givenEmptyBoard_PieceShouldCollideAtBottom = collided o emptyBoard 0 @?= Just 19
-givenFullBoard_PieceShouldCollide = collided o fullBoard 0 @?= Just 0
-givenPartialBoard_CentralPieceShouldCollide = collided o partialBoard 4 @?= Just 10
-givenPartialBoard_OffsetPieceShouldCollide = collided o partialBoard 3 @?= Just 9
-givenPartialBoard_LeftPieceShouldCollide = collided o partialBoard 0 @?= Just 9
+givenEmptyBoard_PieceShouldDropToBottom = dropPiece o emptyBoard 0 @?= Just 19
+givenFullBoard_PieceShouldNotDrop = dropPiece o fullBoard 0 @?= Nothing
+givenPartialBoard_CentralPieceShouldDropHalfway = dropPiece o partialBoard 4 @?= Just 10
+givenPartialBoard_OffsetPieceShouldDropHalfway = dropPiece o partialBoard 3 @?= Just 9
+givenPartialBoard_LeftPieceShouldDropHalfway = dropPiece o partialBoard 0 @?= Just 9
+givenFullBoard_ShouldNotUpdate = updateBoard o fullBoard 4 @?= Nothing
 givenEmptyBoard_ShouldUpdateWithCentralPiece = updateBoard o emptyBoard 4 @?= Just emptyBoardWithPiece
 givenPartialBoard_ShouldUpdateWithCentralPiece = updateBoard o partialBoard 4 @?= Just partialBoardWithPiece
 
@@ -91,11 +94,12 @@ tests =
         TestLabel "Given empty board, collapse should produce empty board" $ TestCase givenEmptyBoard_CollapseShouldProduceEmptyBoard,
         TestLabel "Given full board, collapse should produce empty board" $ TestCase givenFullBoard_CollapseShouldProduceEmptyBoard,
         TestLabel "Given partial board, collapse should remove rull rows" $ TestCase givenPartialBoard_CollapseShouldRemoveFullRows,
-        TestLabel "Given empty board, piece should collide at bottom" $ TestCase givenEmptyBoard_PieceShouldCollideAtBottom,
-        TestLabel "Given full board, piece should collide" $ TestCase givenFullBoard_PieceShouldCollide,
-        TestLabel "Given partial board, central piece should collide" $ TestCase givenPartialBoard_CentralPieceShouldCollide,
-        TestLabel "Given partial board, offset piece should collide" $ TestCase givenPartialBoard_OffsetPieceShouldCollide,
-        TestLabel "Given partial board, left piece should collide" $ TestCase givenPartialBoard_LeftPieceShouldCollide,
+        TestLabel "Given empty board, piece should drop to bottom" $ TestCase givenEmptyBoard_PieceShouldDropToBottom,
+        TestLabel "Given full board, piece should not drop" $ TestCase givenFullBoard_PieceShouldNotDrop,
+        TestLabel "Given partial board, central piece should drop halfway" $ TestCase givenPartialBoard_CentralPieceShouldDropHalfway,
+        TestLabel "Given partial board, offset piece should drop halfway" $ TestCase givenPartialBoard_OffsetPieceShouldDropHalfway,
+        TestLabel "Given partial board, left piece should drop halfway" $ TestCase givenPartialBoard_LeftPieceShouldDropHalfway,
+        TestLabel "Given full board, should not update" $ TestCase givenFullBoard_ShouldNotUpdate,
         TestLabel "Given empty board, should update with central piece" $ TestCase givenEmptyBoard_ShouldUpdateWithCentralPiece,
         TestLabel "Given partial board, should update with central piece" $ TestCase givenPartialBoard_ShouldUpdateWithCentralPiece
     ]
