@@ -4,27 +4,29 @@ type Board = [ String ]
 type Piece = [ String ]
 
 emptyRow = replicate 10 '.'
+emptyRowWithPiece = "....oo...."
 emptyBoard = replicate 20 emptyRow
-emptyBoardWithPiece = (replicate 18 emptyRow) ++ [ "....oo....", "....oo...." ]
+emptyBoardWithPiece = (replicate 18 emptyRow) ++ [ emptyRowWithPiece, emptyRowWithPiece ]
 fullRow = replicate 10 'I'
 fullBoard = replicate 20 fullRow
 partialRow = "ssss..ssss"
+partialRowWithPiece = "ssssoossss"
 partialBoard = (replicate 10 emptyRow) ++ [ partialRow ] ++ (replicate 9 fullRow)
-partialBoardWithPiece = (replicate 9 emptyRow) ++ [ "....oo....", "ssssoossss" ] ++ (replicate 9 fullRow)
+partialBoardWithPiece = (replicate 9 emptyRow) ++ [ emptyRowWithPiece, partialRowWithPiece ] ++ (replicate 9 fullRow)
 o = [ "oo", "oo" ]
 
-collapse :: Board -> Board
-collapse board =
-    collapseInner [ ] board
+collapse :: Int -> Board -> (Int, Board)
+collapse score board =
+    collapseInner [ ] score board
     where
-        collapseInner prior (x : xs) =
+        collapseInner prior score (x : xs) =
             if any (== '.') x then
-                collapseInner (x : prior) xs
+                collapseInner (x : prior) score xs
             else
-                collapseInner (prior ++ [ emptyRow ]) xs
+                collapseInner (prior ++ [ emptyRow ]) (score + 1) xs
 
-        collapseInner prior [ ] = 
-            reverse prior
+        collapseInner prior score [ ] = 
+            (score, reverse prior)
 
 dropPiece :: Piece -> Board -> Int -> Maybe Int
 dropPiece piece board position =
@@ -76,9 +78,9 @@ updateBoard piece board position = do
                 end = drop (row + pieceLength - 1) board
                 pieceLength = length piece
 
-givenEmptyBoard_CollapseShouldProduceEmptyBoard = collapse emptyBoard @?= emptyBoard
-givenFullBoard_CollapseShouldProduceEmptyBoard = collapse fullBoard @?= emptyBoard
-givenPartialBoard_CollapseShouldRemoveFullRows = collapse partialBoard @?= (replicate 19 emptyRow) ++ [ partialRow ]
+givenEmptyBoard_CollapseShouldProduceEmptyBoard = collapse 0 emptyBoard @?= (0, emptyBoard)
+givenFullBoard_CollapseShouldProduceEmptyBoard = collapse 0 fullBoard @?= (20, emptyBoard)
+givenPartialBoard_CollapseShouldRemoveFullRows = collapse 0 partialBoard @?= (9, (replicate 19 emptyRow) ++ [ partialRow ])
 givenEmptyBoard_PieceShouldDropToBottom = dropPiece o emptyBoard 0 @?= Just 19
 givenFullBoard_PieceShouldNotDrop = dropPiece o fullBoard 0 @?= Nothing
 givenPartialBoard_CentralPieceShouldDropHalfway = dropPiece o partialBoard 4 @?= Just 10
