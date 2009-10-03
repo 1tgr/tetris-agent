@@ -1,5 +1,8 @@
 import HUnit
 
+type Board = [ String ]
+type Piece = [ String ]
+
 emptyRow = replicate 10 '.'
 emptyBoard = replicate 20 emptyRow
 fullRow = replicate 10 'I'
@@ -8,7 +11,7 @@ partialRow = "ssss..ssss"
 partialBoard = (replicate 10 emptyRow) ++ [ partialRow ] ++ (replicate 9 fullRow)
 o = [ "oo", "oo" ]
 
-collapse :: [ String ] -> [ String ]
+collapse :: Board -> Board
 collapse board =
     collapseInner [ ] board
     where
@@ -21,7 +24,7 @@ collapse board =
         collapseInner prior [ ] = 
             reverse prior
 
-collided :: [ String ] -> [ String ] -> Int -> Maybe Int
+collided :: Piece -> Board -> Int -> Maybe Int
 collided piece board position =
     collidedInner 0 $ map (drop position) $ board
     where
