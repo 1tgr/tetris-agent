@@ -78,32 +78,20 @@ updateBoard piece board position = do
                 end = drop (row + pieceLength - 1) board
                 pieceLength = length piece
 
-givenEmptyBoard_CollapseShouldProduceEmptyBoard = collapse 0 emptyBoard @?= (0, emptyBoard)
-givenFullBoard_CollapseShouldProduceEmptyBoard = collapse 0 fullBoard @?= (20, emptyBoard)
-givenPartialBoard_CollapseShouldRemoveFullRows = collapse 0 partialBoard @?= (9, (replicate 19 emptyRow) ++ [ partialRow ])
-givenEmptyBoard_PieceShouldDropToBottom = dropPiece o emptyBoard 0 @?= Just 19
-givenFullBoard_PieceShouldNotDrop = dropPiece o fullBoard 0 @?= Nothing
-givenPartialBoard_CentralPieceShouldDropHalfway = dropPiece o partialBoard 4 @?= Just 10
-givenPartialBoard_OffsetPieceShouldDropHalfway = dropPiece o partialBoard 3 @?= Just 9
-givenPartialBoard_LeftPieceShouldDropHalfway = dropPiece o partialBoard 0 @?= Just 9
-givenFullBoard_ShouldNotUpdate = updateBoard o fullBoard 4 @?= Nothing
-givenEmptyBoard_ShouldUpdateWithCentralPiece = updateBoard o emptyBoard 4 @?= Just emptyBoardWithPiece
-givenPartialBoard_ShouldUpdateWithCentralPiece = updateBoard o partialBoard 4 @?= Just partialBoardWithPiece
-
 tests = 
     TestList
     [
-        TestLabel "Given empty board, collapse should produce empty board" $ TestCase givenEmptyBoard_CollapseShouldProduceEmptyBoard,
-        TestLabel "Given full board, collapse should produce empty board" $ TestCase givenFullBoard_CollapseShouldProduceEmptyBoard,
-        TestLabel "Given partial board, collapse should remove rull rows" $ TestCase givenPartialBoard_CollapseShouldRemoveFullRows,
-        TestLabel "Given empty board, piece should drop to bottom" $ TestCase givenEmptyBoard_PieceShouldDropToBottom,
-        TestLabel "Given full board, piece should not drop" $ TestCase givenFullBoard_PieceShouldNotDrop,
-        TestLabel "Given partial board, central piece should drop halfway" $ TestCase givenPartialBoard_CentralPieceShouldDropHalfway,
-        TestLabel "Given partial board, offset piece should drop halfway" $ TestCase givenPartialBoard_OffsetPieceShouldDropHalfway,
-        TestLabel "Given partial board, left piece should drop halfway" $ TestCase givenPartialBoard_LeftPieceShouldDropHalfway,
-        TestLabel "Given full board, should not update" $ TestCase givenFullBoard_ShouldNotUpdate,
-        TestLabel "Given empty board, should update with central piece" $ TestCase givenEmptyBoard_ShouldUpdateWithCentralPiece,
-        TestLabel "Given partial board, should update with central piece" $ TestCase givenPartialBoard_ShouldUpdateWithCentralPiece
+        TestLabel "Given empty board, collapse should produce empty board" $ collapse 0 emptyBoard ~?= (0, emptyBoard),
+        TestLabel "Given full board, collapse should produce empty board" $ collapse 0 fullBoard ~?= (20, emptyBoard),
+        TestLabel "Given partial board, collapse should remove rull rows" $ collapse 0 partialBoard ~?= (9, (replicate 19 emptyRow) ++ [ partialRow ]),
+        TestLabel "Given empty board, piece should drop to bottom" $ dropPiece o emptyBoard 0 ~?= Just 19,
+        TestLabel "Given full board, piece should not drop" $ dropPiece o fullBoard 0 ~?= Nothing,
+        TestLabel "Given partial board, central piece should drop halfway" $ dropPiece o partialBoard 4 ~?= Just 10,
+        TestLabel "Given partial board, offset piece should drop halfway" $ dropPiece o partialBoard 3 ~?= Just 9,
+        TestLabel "Given partial board, left piece should drop halfway" $ dropPiece o partialBoard 0 ~?= Just 9,
+        TestLabel "Given full board, should not update" $ updateBoard o fullBoard 4 ~?= Nothing,
+        TestLabel "Given empty board, should update with central piece" $ updateBoard o emptyBoard 4 ~?= Just emptyBoardWithPiece,
+        TestLabel "Given partial board, should update with central piece" $ updateBoard o partialBoard 4 ~?= Just partialBoardWithPiece
     ]
 
 main =
