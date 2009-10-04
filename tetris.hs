@@ -209,19 +209,16 @@ playGame g player state =
                 Just updatedBoard -> playGameInner g' state' $ collapse score updatedBoard
                 Nothing -> (score, board)
 
-depth :: Board -> [ Int ]
-depth board =
-    depthInner board 0 $ replicate (maximum $ map length board) 0
+depths :: Board -> [ Int ]
+depths =
+    depthsInner 0
     where
-        depthInner (x : xs) depth depths =
-            depthInner xs (depth + 1) $ latchDepth x depths
+        depthsInner row (x : xs) =
+            case xs of
+            [ ] -> rowDepths
+            _ -> zipWith min rowDepths $ depthsInner (row + 1) xs
             where
-                latchDepth ('.' : bs) (_ : ds) = depth : latchDepth bs ds
-                latchDepth (_ : bs) (d : ds)  = d : latchDepth bs ds
-                latchDepth [ ] _ = [ depth ]
-                latchDepth _ [ ] = [ depth ]
-
-        depthInner [ ] _ depths = depths
+                rowDepths = map (\c -> if c == '.' then 20 else row) x
 
 randomPlayer :: RandomGen g => g -> PieceCode -> Board -> (g, Int, Rotation)
 randomPlayer g pieceCode board =
@@ -229,7 +226,8 @@ randomPlayer g pieceCode board =
     where
         (rotation, g') = random g
         pieceData = rotatedPiece pieceCode rotation
-        pieceWidth = max $ map length pieceData
+        pieceWidth = maximum $ map length pieceData
+        boardWidth = maximum $ map length board
 
         f (maxDepth, maxPosition, position) depth =
             if depth > maxDepth then
@@ -237,7 +235,8 @@ randomPlayer g pieceCode board =
             else
                 (maxDepth, maxPosition, position + 1)
 
-        (_, position, _) = foldl f (0, 0, 0) $ depth board
+        d = take (boardWidth - pieceWidth + 1) $ depths board
+        (_, position, _) = foldl f (0, 0, 0) $ trace (show d) $ d
 
 testRandomPlayer = do
     let g = mkStdGen 0
