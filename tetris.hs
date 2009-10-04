@@ -81,17 +81,17 @@ updateBoard piece board position = do
 tests = 
     TestList
     [
-        TestLabel "Given empty board, collapse should produce empty board" $ collapse 0 emptyBoard ~?= (0, emptyBoard),
-        TestLabel "Given full board, collapse should produce empty board" $ collapse 0 fullBoard ~?= (20, emptyBoard),
-        TestLabel "Given partial board, collapse should remove rull rows" $ collapse 0 partialBoard ~?= (9, (replicate 19 emptyRow) ++ [ partialRow ]),
-        TestLabel "Given empty board, piece should drop to bottom" $ dropPiece o emptyBoard 0 ~?= Just 19,
-        TestLabel "Given full board, piece should not drop" $ dropPiece o fullBoard 0 ~?= Nothing,
-        TestLabel "Given partial board, central piece should drop halfway" $ dropPiece o partialBoard 4 ~?= Just 10,
-        TestLabel "Given partial board, offset piece should drop halfway" $ dropPiece o partialBoard 3 ~?= Just 9,
-        TestLabel "Given partial board, left piece should drop halfway" $ dropPiece o partialBoard 0 ~?= Just 9,
-        TestLabel "Given full board, should not update" $ updateBoard o fullBoard 4 ~?= Nothing,
-        TestLabel "Given empty board, should update with central piece" $ updateBoard o emptyBoard 4 ~?= Just emptyBoardWithPiece,
-        TestLabel "Given partial board, should update with central piece" $ updateBoard o partialBoard 4 ~?= Just partialBoardWithPiece
+        "Given empty board, collapse should produce empty board" ~: collapse 0 emptyBoard ~?= (0, emptyBoard),
+        "Given full board, collapse should produce empty board" ~: collapse 0 fullBoard ~?= (20, emptyBoard),
+        "Given partial board, collapse should remove rull rows" ~: collapse 0 partialBoard ~?= (9, (replicate 19 emptyRow) ++ [ partialRow ]),
+        "Given empty board, piece should drop to bottom" ~: dropPiece o emptyBoard 0 ~?= Just 19,
+        "Given full board, piece should not drop" ~: dropPiece o fullBoard 0 ~?= Nothing,
+        "Given partial board, central piece should drop halfway" ~: dropPiece o partialBoard 4 ~?= Just 10,
+        "Given partial board, offset piece should drop halfway" ~: dropPiece o partialBoard 3 ~?= Just 9,
+        "Given partial board, left piece should drop halfway" ~: dropPiece o partialBoard 0 ~?= Just 9,
+        "Given full board, should not update" ~: updateBoard o fullBoard 4 ~?= Nothing,
+        "Given empty board, should update with central piece" ~: updateBoard o emptyBoard 4 ~?= Just emptyBoardWithPiece,
+        "Given partial board, should update with central piece" ~: updateBoard o partialBoard 4 ~?= Just partialBoardWithPiece
     ]
 
 main =
