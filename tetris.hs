@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances, UndecidableInstances, ScopedTypeVariables, OverlappingInstances #-}
+import Array
+import Debug.Trace
 import HUnit
 import Random
 
@@ -11,6 +14,28 @@ data PieceCode = I
                | S
                | T
                | Z
+               deriving (Bounded, Enum, Show)
+
+data Rotation = None
+              | Ninety
+              | OneEighty
+              | TwoSeventy
+              deriving (Bounded, Enum, Show)
+
+class (Bounded a, Enum a) => BoundedEnum a
+instance (Bounded a, Enum a) => BoundedEnum a
+
+instance BoundedEnum a => Random a where
+    random g =
+        let min = fromEnum (minBound :: a) in
+        let max = fromEnum (maxBound :: a) in
+        let (i, g') = randomR (min, max) $ g in
+        (toEnum i, g')
+    randomR (low, high) g =
+        let min = fromEnum low in
+        let max = fromEnum high in
+        let (i, g') = randomR (min, max) $ g in
+        (toEnum i, g')
 
 emptyRow = replicate 10 '.'
 emptyRowWithPiece = "....oo...."
@@ -23,31 +48,84 @@ partialRowWithPiece = "ssssoossss"
 partialBoard = (replicate 10 emptyRow) ++ [ partialRow ] ++ (replicate 9 fullRow)
 partialBoardWithPiece = (replicate 9 emptyRow) ++ [ emptyRowWithPiece, partialRowWithPiece ] ++ (replicate 9 fullRow)
 
-piece :: PieceCode -> Piece
-piece I = [ "i",
-            "i" ]
+rotatedPiece :: PieceCode -> Rotation -> Piece
+rotatedPiece I None = [ "i",
+                        "i",
+                        "i",
+                        "i" ]
+                        
+rotatedPiece I Ninety = [ "iiii" ]
 
-piece J = [ ".j",
-            ".j",
-            ".j",
-            "jj" ]
+rotatedPiece I OneEighty = rotatedPiece I Ninety
+rotatedPiece I TwoSeventy = rotatedPiece I None
 
-piece L = [ "l.",
-            "l.",
-            "l.",
-            "ll" ]
+rotatedPiece J None = [ ".j",
+                        ".j",
+                        "jj" ]
 
-piece O = [ "oo", 
-            "oo"]
+rotatedPiece J Ninety = [ "j..",
+                          "jjj" ]
+
+rotatedPiece J OneEighty = [ "jj",
+                             "j.",
+                             "j." ]
+
+rotatedPiece J TwoSeventy = [ "jjj",
+                              "..j" ]
+
+rotatedPiece L None = [ "l.",
+                        "l.",
+                        "ll" ]
+                        
+rotatedPiece L Ninety = [ "lll",
+                          "l.." ]
+
+rotatedPiece L OneEighty = [ "ll",
+                             ".l",
+                             ".l" ]
+
+rotatedPiece L TwoSeventy = [ "..l",
+                             "lll" ]
+
+rotatedPiece O _ = [ "oo", 
+                     "oo"]
       
-piece S = [ "ss.",
-            ".ss" ]
+rotatedPiece S None = [ ".ss",
+                        "ss." ]
+                        
+rotatedPiece S Ninety = [ "s.",
+                          "ss",
+                          ".s" ]
 
-piece T = [ "ttt",
-            ".t." ]
+rotatedPiece S OneEighty = rotatedPiece S None
+rotatedPiece S TwoSeventy = rotatedPiece S Ninety
 
-piece Z = [ ".zz",
-      "zz." ]
+rotatedPiece T None = [ "ttt",
+                        ".t." ]
+
+rotatedPiece T Ninety = [ ".t",
+                          "tt",
+                          ".t" ]
+
+rotatedPiece T OneEighty = [ ".t.",
+                             "ttt" ]
+
+rotatedPiece T TwoSeventy = [ "t.",
+                              "tt",
+                              "t." ]
+
+rotatedPiece Z None = [ "zz.",
+                        ".zz" ]
+
+rotatedPiece Z Ninety = [ ".z",
+                          "zz",
+                          "z." ]
+
+rotatedPiece Z OneEighty = rotatedPiece Z None
+rotatedPiece Z TwoSeventy = rotatedPiece Z Ninety
+
+piece :: PieceCode -> Piece
+piece pieceCode = rotatedPiece pieceCode None
 
 collapse :: Int -> Board -> (Int, Board)
 collapse score board =
@@ -93,50 +171,79 @@ updateBoard piece board position = do
     return $ updateBoardInner row
     where
         updateBoardInner row =
-            beginning ++ middle ++ end
+            top ++ middle ++ bottom
             where
-                beginning = take (row - 1) board
+                top = take (row - 1) board
                 middle =
                     drawPiece piece $ take pieceLength $ drop (row - 1) board
                     where
-                        drawPiece (centre : ps) (b : bs) =
+                        drawPiece (p : ps) (b : bs) =
                             [ left ++ centre ++ right ] ++ drawPiece ps bs
                             where
+                                pieceWidth = length p
                                 left = take position b
+                                centre = zipWith drawCell p $ take pieceWidth $ drop position b
+                                    where
+                                        drawCell '.' bb = bb
+                                        drawCell pp _ = pp
+
                                 right = drop (position + pieceWidth) b
-                                pieceWidth = length centre
 
                         drawPiece [ ] [ ] =
                             [ ]
 
-                end = drop (row + pieceLength - 1) board
+                bottom = drop (row + pieceLength - 1) board
                 pieceLength = length piece
 
-playGame :: RandomGen g => g -> (a -> PieceCode -> Board -> (a, Int, Int)) -> a -> (Int, Board)
-playGame random player state =
-    playGameInner random 0 state emptyBoard
+playGame :: RandomGen g => g -> (a -> PieceCode -> Board -> (a, Int, Rotation)) -> a -> (Int, Board)
+playGame g player state =
+    playGameInner g state (0, emptyBoard)
     where
-        playGameInner randomInner score stateInner board =
-            case maybeUpdatedBoard of
-            Just updatedBoard -> 
-                let (newScore, collapsedBoard) = collapse score updatedBoard in
-                playGameInner newRandom newScore newState collapsedBoard
-            Nothing ->
-                (score, board)
-            where
-                pieceCodeChoices = [ I, J, L, O, S, T, Z ]
-                (pieceCodeIndex, newRandom) = randomR (0, length pieceCodeChoices - 1) randomInner
-                pieceCode = pieceCodeChoices !! pieceCodeIndex
-                (newState, position, rotation) = player stateInner pieceCode board
-                pieceData = piece pieceCode
-                maybeUpdatedBoard = updateBoard pieceData board position
+        playGameInner g state (score, board) =
+            let
+                (pieceCode, g') = random g
+                (state', position, rotation) = player state pieceCode board
+                pieceData = trace (show (position, rotation)) $ rotatedPiece pieceCode rotation
+            in
+                case updateBoard pieceData board position of
+                Just updatedBoard -> playGameInner g' state' $ collapse score updatedBoard
+                Nothing -> (score, board)
 
-randomPlayer :: RandomGen g => g -> PieceCode -> Board -> (g, Int, Int)
-randomPlayer random pieceCode board =
-    (random3, position, rotation)
+depth :: Board -> [ Int ]
+depth board =
+    depthInner board 0 $ replicate (maximum $ map length board) 0
     where
-        (position, random2) = randomR (0, 9) random
-        (rotation, random3) = randomR (0, 3) random
+        depthInner (x : xs) depth depths =
+            depthInner xs (depth + 1) $ latchDepth x depths
+            where
+                latchDepth ('.' : bs) (_ : ds) = depth : latchDepth bs ds
+                latchDepth (_ : bs) (d : ds)  = d : latchDepth bs ds
+                latchDepth [ ] _ = [ depth ]
+                latchDepth _ [ ] = [ depth ]
+
+        depthInner [ ] _ depths = depths
+
+randomPlayer :: RandomGen g => g -> PieceCode -> Board -> (g, Int, Rotation)
+randomPlayer g pieceCode board =
+    (g', position, rotation)
+    where
+        (rotation, g') = random g
+        pieceData = rotatedPiece pieceCode rotation
+        pieceWidth = max $ map length pieceData
+
+        f (maxDepth, maxPosition, position) depth =
+            if depth > maxDepth then
+                (depth, position, position + 1)
+            else
+                (maxDepth, maxPosition, position + 1)
+
+        (_, position, _) = foldl f (0, 0, 0) $ depth board
+
+testRandomPlayer = do
+    let g = mkStdGen 0
+    let (score, board) = playGame g randomPlayer g
+    mapM_ putStrLn board
+    score @?= 0
 
 main =
     runTestTT $
@@ -153,5 +260,5 @@ main =
             "Given full board, should not update" ~: updateBoard (piece O) fullBoard 4 ~?= Nothing,
             "Given empty board, should update with central piece" ~: updateBoard (piece O) emptyBoard 4 ~?= Just emptyBoardWithPiece,
             "Given partial board, should update with central piece" ~: updateBoard (piece O) partialBoard 4 ~?= Just partialBoardWithPiece,
-            "randomPlayer works" ~: (fst $ playGame (mkStdGen 0) randomPlayer (mkStdGen 0)) ~?= 0
+            "randomPlayer should work" ~: testRandomPlayer
         ]
