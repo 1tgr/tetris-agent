@@ -2,6 +2,7 @@
 import Array
 import Debug.Trace
 import HUnit
+import List
 import Random
 
 type Board = [ String ]
@@ -189,25 +190,27 @@ updateBoard piece board position = do
 
                                 right = drop (position + pieceWidth) b
 
-                        drawPiece [ ] [ ] =
-                            [ ]
+                        drawPiece [ ] _ = [ ]
+                        drawPiece _ [ ] = [ ]
 
                 bottom = drop (row + pieceLength - 1) board
                 pieceLength = length piece
 
-playGame :: RandomGen g => g -> (a -> PieceCode -> Board -> (a, Int, Rotation)) -> a -> (Int, Board)
+playGame :: RandomGen g => g -> (a -> PieceCode -> Board -> (a, Int, Rotation)) -> a -> (g, Int, Int, Board)
 playGame g player state =
-    playGameInner g state (0, emptyBoard)
+    playGameInner g state (0, 0, emptyBoard)
     where
-        playGameInner g state (score, board) =
+        playGameInner g state (score, turns, board) =
             let
                 (pieceCode, g') = random g
                 (state', position, rotation) = player state pieceCode board
-                pieceData = trace (show (position, rotation)) $ rotatedPiece pieceCode rotation
+                pieceData = rotatedPiece pieceCode rotation
             in
                 case updateBoard pieceData board position of
-                Just updatedBoard -> playGameInner g' state' $ collapse score updatedBoard
-                Nothing -> (score, board)
+                Just board' -> 
+                    let (score', board'') = collapse score board' in
+                    playGameInner g' state' (score', turns + 1, board'')
+                Nothing -> (g', score, turns, board)
 
 depths :: Board -> [ Int ]
 depths =
@@ -235,14 +238,115 @@ randomPlayer g pieceCode board =
             else
                 (maxDepth, maxPosition, position + 1)
 
-        d = take (boardWidth - pieceWidth + 1) $ depths board
-        (_, position, _) = foldl f (0, 0, 0) $ trace (show d) $ d
+        (_, position, _) = foldl f (0, 0, 0) $ take (boardWidth - pieceWidth + 1) $ depths board
 
-testRandomPlayer = do
-    let g = mkStdGen 0
-    let (score, board) = playGame g randomPlayer g
-    mapM_ putStrLn board
-    score @?= 0
+
+type Individual = ([ (Double, Double, Double) ], [ (Double, Double, Double) ])
+type Population f = [ (Individual, f) ]
+
+evolvingPlayer :: Individual -> () -> PieceCode -> Board -> ((), Int, Rotation)
+evolvingPlayer (positionFactors, rotationFactors) _ pieceCode board =
+    ((), position, rotation)
+    where
+        d = map fromIntegral $ depths board
+
+        applyFactors :: Double -> (Double, Double, Double) -> Double
+        applyFactors depth (a, b, c) = 
+            a * depth ^^ 2 + b * depth + c
+
+        position = (truncate $ sum $ zipWith applyFactors d positionFactors) `mod` 10
+        rotation = toEnum $ (truncate $ sum $ zipWith applyFactors d rotationFactors) `mod` 4
+
+randomFactor :: RandomGen g => g -> (g, (Double, Double, Double))
+randomFactor g =
+    (g''', (a - 0.5, b - 0.5, c - 0.5))
+    where
+        (a, g') = random g
+        (b, g'') = random g'
+        (c, g''') = random g''
+
+mutateFactor :: RandomGen g => g -> (Double, Double, Double) -> (g, (Double, Double, Double))
+mutateFactor g (a, b, c) =
+    (g', (a + a', b + b', c + c'))
+    where
+        (g', (a', b', c')) = randomFactor g
+
+randomIndividual :: RandomGen g => g -> Int -> (g, Individual)
+randomIndividual g 0 =
+    (g, ([ ], [ ]))
+
+randomIndividual g count =
+    (g''', (positionFactor : positionFactors, rotationFactor : rotationFactors))
+    where
+        (g', positionFactor) = randomFactor g
+        (g'', rotationFactor) = randomFactor g'
+        (g''', (positionFactors, rotationFactors)) = randomIndividual g'' (count - 1)
+
+fitness individual =
+    (totalScore * totalTurns, totalScore, totalTurns)
+    where
+        player = evolvingPlayer individual
+
+        playGames g 0 =
+            (g, 1, 1)
+
+        playGames g count =
+            (g'', score + score', turns + turns')
+            where
+                (g', score', turns', _) = playGame g (evolvingPlayer individual) ()
+                (g'', score, turns) = playGames g' (count - 1)
+
+        (_, totalScore, totalTurns) = playGames (mkStdGen 0) 100
+
+-- randomPopulation :: (RandomGen g) => g -> Int -> (g, Population f)
+randomPopulation g 0 =
+    (g, [ ])
+
+randomPopulation g count =
+    (g'', (individual, fitness individual) : individuals)
+    where
+        (g', individual) = randomIndividual g 10
+        (g'', individuals) = randomPopulation g' (count - 1)
+
+mutateList :: RandomGen g => g -> [ (Double, Double, Double) ] -> (g, [ (Double, Double, Double) ])
+mutateList g [ ] =
+    (g, [ ])
+
+mutateList g (x : xs) =
+    (g'', x' : xs')
+    where
+        (g', x') = mutateFactor g x
+        (g'', xs') = mutateList g' xs
+
+mutateIndividual :: RandomGen g => g -> Individual -> (g, Individual)
+mutateIndividual g (positions, rotations) = 
+    (g'', (positions', rotations'))
+    where
+        (g', positions') = mutateList g positions
+        (g'', rotations') = mutateList g' rotations
+
+-- mutatePopulation :: (Num f, Ord f, Show f, RandomGen g) => (g, Population f) -> Int -> (g, Population f)
+mutatePopulation (g, population) generation =
+    mutatePopulationInner (g, [ fittest ]) $ trace ("Generation " ++ (show generation) ++ ": " ++ (show $ snd fittest)) $ (count - 1)
+    where
+        fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
+        count = length population
+
+        mutatePopulationInner state 0 =
+            state
+
+        mutatePopulationInner (g, population) count =
+            (g'', (individual, fitness individual) : population')
+            where
+                (g', individual) = mutateIndividual g $ fst fittest
+                (g'', population') = mutatePopulationInner (g', population) (count - 1)
+
+-- evolver :: (Num f, Ord f, RandomGen g) => (g, Population f) -> Int -> (g, Population f)
+evolver state 0 =
+    state
+
+evolver state iterations =
+    evolver (mutatePopulation state (1000 - iterations)) (iterations - 1)
 
 main =
     runTestTT $
@@ -259,5 +363,16 @@ main =
             "Given full board, should not update" ~: updateBoard (piece O) fullBoard 4 ~?= Nothing,
             "Given empty board, should update with central piece" ~: updateBoard (piece O) emptyBoard 4 ~?= Just emptyBoardWithPiece,
             "Given partial board, should update with central piece" ~: updateBoard (piece O) partialBoard 4 ~?= Just partialBoardWithPiece,
-            "randomPlayer should work" ~: testRandomPlayer
+            "randomPlayer should work" ~: do
+                let g = mkStdGen 0
+                let (_, score, turns, board) = playGame g randomPlayer g
+                mapM_ putStrLn ("" : board)
+                score @?= 0,
+            "evolver should work" ~: do
+                let state = randomPopulation (mkStdGen 0) 100
+                let (_, population) = evolver state 1000
+                let fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
+                putStrLn ""
+                putStrLn $ show fittest
+                return ()
         ]
