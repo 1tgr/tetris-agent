@@ -241,21 +241,13 @@ randomPlayer g pieceCode board =
         (_, position, _) = foldl f (0, 0, 0) $ take (boardWidth - pieceWidth + 1) $ depths board
 
 
-type Individual = ([ (Double, Double, Double) ], [ (Double, Double, Double) ])
-type Population f = [ (Individual, f) ]
+class Show i => Individual i where
+    player :: i -> a -> PieceCode -> Board -> (a, Int, Rotation)
+    randomIndividual :: RandomGen g => g -> (g, i)
+    mutateIndividual :: RandomGen g => g -> i -> (g, i)
 
-evolvingPlayer :: Individual -> () -> PieceCode -> Board -> ((), Int, Rotation)
-evolvingPlayer (positionFactors, rotationFactors) _ pieceCode board =
-    ((), position, rotation)
-    where
-        d = map fromIntegral $ depths board
-
-        applyFactors :: Double -> (Double, Double, Double) -> Double
-        applyFactors depth (a, b, c) = 
-            a * depth ^^ 2 + b * depth + c
-
-        position = (truncate $ sum $ zipWith applyFactors d positionFactors) `mod` 10
-        rotation = toEnum $ (truncate $ sum $ zipWith applyFactors d rotationFactors) `mod` 4
+data PolyIndividual = PolyIndividual ([ (Double, Double, Double) ], [ (Double, Double, Double) ])
+                    deriving (Show)
 
 randomFactor :: RandomGen g => g -> (g, (Double, Double, Double))
 randomFactor g =
@@ -271,61 +263,75 @@ mutateFactor g (a, b, c) =
     where
         (g', (a', b', c')) = randomFactor g
 
-randomIndividual :: RandomGen g => g -> Int -> (g, Individual)
-randomIndividual g 0 =
-    (g, ([ ], [ ]))
+instance Individual PolyIndividual where
+    player (PolyIndividual (positionFactors, rotationFactors)) state pieceCode board =
+        (state, position, rotation)
+        where
+            d = map fromIntegral $ depths board
 
-randomIndividual g count =
-    (g''', (positionFactor : positionFactors, rotationFactor : rotationFactors))
-    where
-        (g', positionFactor) = randomFactor g
-        (g'', rotationFactor) = randomFactor g'
-        (g''', (positionFactors, rotationFactors)) = randomIndividual g'' (count - 1)
+            applyFactors :: Double -> (Double, Double, Double) -> Double
+            applyFactors depth (a, b, c) = 
+                a * depth ^^ 2 + b * depth + c
 
+            position = (truncate $ sum $ zipWith applyFactors d positionFactors) `mod` 10
+            rotation = toEnum $ (truncate $ sum $ zipWith applyFactors d rotationFactors) `mod` 4
+
+    randomIndividual g =
+        randomIndividual' g 10
+        where
+            randomIndividual' g 0 =
+                (g, PolyIndividual ([ ], [ ]))
+
+            randomIndividual' g count =
+                (g''', PolyIndividual (positionFactor : positionFactors, rotationFactor : rotationFactors))
+                where
+                    (g', positionFactor) = randomFactor g
+                    (g'', rotationFactor) = randomFactor g'
+                    (g''', PolyIndividual (positionFactors, rotationFactors)) = randomIndividual' g'' (count - 1)
+
+    mutateIndividual g (PolyIndividual (positions, rotations)) = 
+        (g'', PolyIndividual (positions', rotations'))
+        where
+            (g', positions') = mutateList g positions
+            (g'', rotations') = mutateList g' rotations
+            
+            mutateList g [ ] =
+                (g, [ ])
+
+            mutateList g (x : xs) =
+                (g'', x' : xs')
+                where
+                    (g', x') = mutateFactor g x
+                    (g'', xs') = mutateList g' xs
+
+type Population i = [ (i, (Int, Int, Int)) ]
+
+fitness :: Individual i => i -> (Int, Int, Int)
 fitness individual =
     (totalScore * totalTurns, totalScore, totalTurns)
     where
-        player = evolvingPlayer individual
-
         playGames g 0 =
             (g, 1, 1)
 
         playGames g count =
             (g'', score + score', turns + turns')
             where
-                (g', score', turns', _) = playGame g (evolvingPlayer individual) ()
+                (g', score', turns', _) = playGame g (player individual) ()
                 (g'', score, turns) = playGames g' (count - 1)
 
         (_, totalScore, totalTurns) = playGames (mkStdGen 0) 100
 
--- randomPopulation :: (RandomGen g) => g -> Int -> (g, Population f)
+randomPopulation :: (Individual i, RandomGen g) => g -> Int -> (g, Population i)
 randomPopulation g 0 =
     (g, [ ])
 
 randomPopulation g count =
     (g'', (individual, fitness individual) : individuals)
     where
-        (g', individual) = randomIndividual g 10
+        (g', individual) = randomIndividual g
         (g'', individuals) = randomPopulation g' (count - 1)
 
-mutateList :: RandomGen g => g -> [ (Double, Double, Double) ] -> (g, [ (Double, Double, Double) ])
-mutateList g [ ] =
-    (g, [ ])
-
-mutateList g (x : xs) =
-    (g'', x' : xs')
-    where
-        (g', x') = mutateFactor g x
-        (g'', xs') = mutateList g' xs
-
-mutateIndividual :: RandomGen g => g -> Individual -> (g, Individual)
-mutateIndividual g (positions, rotations) = 
-    (g'', (positions', rotations'))
-    where
-        (g', positions') = mutateList g positions
-        (g'', rotations') = mutateList g' rotations
-
--- mutatePopulation :: (Num f, Ord f, Show f, RandomGen g) => (g, Population f) -> Int -> (g, Population f)
+mutatePopulation :: (Individual i, RandomGen g) => (g, Population i) -> Int -> (g, Population i)
 mutatePopulation (g, population) generation =
     mutatePopulationInner (g, [ fittest ]) $ trace ("Generation " ++ (show generation) ++ ": " ++ (show $ snd fittest)) $ (count - 1)
     where
@@ -341,7 +347,7 @@ mutatePopulation (g, population) generation =
                 (g', individual) = mutateIndividual g $ fst fittest
                 (g'', population') = mutatePopulationInner (g', population) (count - 1)
 
--- evolver :: (Num f, Ord f, RandomGen g) => (g, Population f) -> Int -> (g, Population f)
+evolver :: (Individual i, RandomGen g) => (g, Population i) -> Int -> (g, Population i)
 evolver state 0 =
     state
 
@@ -363,16 +369,23 @@ main =
             "Given full board, should not update" ~: updateBoard (piece O) fullBoard 4 ~?= Nothing,
             "Given empty board, should update with central piece" ~: updateBoard (piece O) emptyBoard 4 ~?= Just emptyBoardWithPiece,
             "Given partial board, should update with central piece" ~: updateBoard (piece O) partialBoard 4 ~?= Just partialBoardWithPiece,
+
             "randomPlayer should work" ~: do
                 let g = mkStdGen 0
                 let (_, score, turns, board) = playGame g randomPlayer g
                 mapM_ putStrLn ("" : board)
                 score @?= 0,
-            "evolver should work" ~: do
-                let state = randomPopulation (mkStdGen 0) 100
-                let (_, population) = evolver state 1000
-                let fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
-                putStrLn ""
-                putStrLn $ show fittest
-                return ()
+
+            "PolyIndividual should work" ~: 
+                let
+                    state = randomPopulation (mkStdGen 0) 100
+                    
+                    population :: Population PolyIndividual
+                    population = snd $ evolver state 1000
+
+                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
+                in do
+                    putStrLn ""
+                    putStrLn $ show fittest
+                    return ()
         ]
