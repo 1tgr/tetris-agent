@@ -1,3 +1,3 @@
 all:
-	mkdir -p bin
-	ghc --make -o bin/tetris -iHUnit-1.0 *.hs
+	mkdir -p bin obj
+	ghc --make -o bin/tetris -outputdir obj -iHUnit-1.0 *.hs
