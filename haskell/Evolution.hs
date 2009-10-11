@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Tetris.Evolution where
   
 import Debug.Trace
@@ -6,7 +7,7 @@ import List
 import Tetris.Engine
 
 class Show i => Individual i where
-    player :: i -> a -> PieceCode -> Board -> (a, Int, Rotation)
+    player :: i -> PieceCode -> Board -> (i, Int, Rotation)
     randomIndividual :: RandomGen g => g -> (g, i)
     mutateIndividual :: RandomGen g => g -> i -> (g, i)
 
@@ -22,7 +23,7 @@ fitness individual =
         playGames g count =
             (g'', score + score', turns + turns')
             where
-                (g', score', turns', _) = playGame g (player individual) ()
+                (g', score', turns', _) = playGame g player individual
                 (g'', score, turns) = playGames g' (count - 1)
 
         (_, totalScore, totalTurns) = playGames (mkStdGen 0) 100

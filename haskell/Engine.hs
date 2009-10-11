@@ -1,5 +1,6 @@
 module Tetris.Engine where
-  
+
+import Ix  
 import Random
 import Tetris.BoundedEnum
 
@@ -13,7 +14,7 @@ data PieceCode = I
                | S
                | T
                | Z
-               deriving (Bounded, Enum, Show)
+               deriving (Bounded, Enum, Eq, Ix, Ord, Show)
 
 data Rotation = None
               | Ninety

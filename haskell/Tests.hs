@@ -5,6 +5,7 @@ import List
 import Random
 import Tetris.Engine
 import Tetris.Evolution
+import Tetris.Evolution.Markov
 import Tetris.Evolution.Poly
 import Tetris.Player.Random
 
@@ -24,16 +25,29 @@ main =
             "Given empty board, should update with central piece" ~: updateBoard (piece O) emptyBoard 4 ~?= Just emptyBoardWithPiece,
             "Given partial board, should update with central piece" ~: updateBoard (piece O) partialBoard 4 ~?= Just partialBoardWithPiece,
 
-            "randomPlayer should work" ~: do
-                let g = mkStdGen 0
-                let (_, score, turns, board) = playGame g randomPlayer g
-                mapM_ putStrLn ("" : board)
-                score @?= 0,
+            "randomPlayer should work" ~:
+                let
+                    g = mkStdGen 0
+                    (_, score, turns, board) = playGame g randomPlayer g in
+                score ~?= 0,
+
+            "MarkovIndividual should work" ~: 
+                let
+                    state = randomPopulation (mkStdGen 0) 100
+
+                    population :: Population MarkovIndividual
+                    population = snd $ evolver state 1000
+
+                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
+                in do
+                    putStrLn ""
+                    putStrLn $ show fittest
+                    return (),
 
             "PolyIndividual should work" ~: 
                 let
                     state = randomPopulation (mkStdGen 0) 100
-                    
+
                     population :: Population PolyIndividual
                     population = snd $ evolver state 1000
 

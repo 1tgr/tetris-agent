@@ -5,7 +5,7 @@ import Tetris.Engine
 import Tetris.Evolution
 
 data PolyIndividual = PolyIndividual ([ (Double, Double, Double) ], [ (Double, Double, Double) ])
-                    deriving (Show)
+                      deriving (Show)
 
 randomFactor :: RandomGen g => g -> (g, (Double, Double, Double))
 randomFactor g =
@@ -22,8 +22,8 @@ mutateFactor g (a, b, c) =
         (g', (a', b', c')) = randomFactor g
 
 instance Individual PolyIndividual where
-    player (PolyIndividual (positionFactors, rotationFactors)) state pieceCode board =
-        (state, position, rotation)
+    player individual @ (PolyIndividual (positionFactors, rotationFactors)) pieceCode board =
+        (individual, position, rotation)
         where
             d = map fromIntegral $ depths board
 
