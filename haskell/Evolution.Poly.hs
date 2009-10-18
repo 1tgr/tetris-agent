@@ -15,26 +15,14 @@ randomM generator = do
   put g'
   return n
 
-randomFactor :: Fractional a => (State g a) -> State g (a, a, a)
-randomFactor generator = do
-    a <- generator
-    b <- generator
-    c <- generator
-    return (a, b, c)
+replicate3 :: a -> (a, a, a)
+replicate3 a = (a, a, a)
+
+sequence3 :: Monad m => (m a, m a, m a) -> m (a, a, a)
+sequence3 (ma, mb, mc) = ma >>= \a -> mb >>= \b -> mc >>= \c -> return (a, b, c)
 
 mutateFactor :: Num a => (State g (a, a, a)) -> (a, a, a) -> State g (a, a, a)
-mutateFactor generator (a, b, c) = do
-    (a', b', c') <- generator
-    return (a + a', b + b', c + c')
-
-mutateList :: (a -> State g a) -> [ a ] -> State g [ a ]
-mutateList _ [ ] =
-    return [ ]
-
-mutateList mutator (x : xs) = do
-    x' <- mutator x
-    xs' <- mutateList mutator xs
-    return $ x' : xs'
+mutateFactor generator (a, b, c) = generator >>= \(a', b', c') -> return (a + a', b + b', c + c')
 
 instance Individual PolyIndividual where
     player individual @ (PolyIndividual (positionFactors, rotationFactors)) pieceCode board =
@@ -50,9 +38,8 @@ instance Individual PolyIndividual where
             rotation = toEnum $ (truncate $ sum $ zipWith applyFactors d rotationFactors) `mod` 4
 
     randomIndividual = 
-      runState zob
-      where r = randomFactor $ randomM $ randomR (-0.5, 0.5)
-            zob = randomIndividual' 10
+      runState $ randomIndividual' 10
+      where r = sequence3 . replicate3 $ randomM $ randomR (-0.5, 0.5)
             randomIndividual' 0 = return $ PolyIndividual ([ ], [ ])
 
             randomIndividual' count = do
@@ -62,9 +49,8 @@ instance Individual PolyIndividual where
                                       return $ PolyIndividual (positionFactor : positionFactors, rotationFactor : rotationFactors)
 
     mutateIndividual (PolyIndividual (positions, rotations)) = 
-        runState zob
-        where m = mutateList $ mutateFactor $ randomFactor $ randomM $ randomR (-0.5, 0.5)
-              zob = do
-                    positions' <- m positions
-                    rotations' <- m rotations
-                    return $ PolyIndividual (positions', rotations')
+        runState $ do
+            positions' <- m positions
+            rotations' <- m rotations
+            return $ PolyIndividual (positions', rotations')
+        where m = mapM $ mutateFactor $ sequence3 . replicate3 $ randomM $ randomR (-0.5, 0.5)
