@@ -1,5 +1,6 @@
 module Tetris.Engine where
 
+import Control.Monad.State.Lazy
 import Ix  
 import Random
 import Tetris.BoundedEnum
@@ -206,3 +207,10 @@ depths =
             _ -> zipWith min rowDepths $ depthsInner (row + 1) xs
             where
                 rowDepths = map (\c -> if c == '.' then 20 else row) x
+
+randomM :: (g -> (a, g)) -> State g a
+randomM generator = do
+    g <- get
+    let (n, g') = generator g
+    put g'
+    return n

@@ -8,13 +8,6 @@ import Tetris.Evolution
 data PolyIndividual = PolyIndividual ([ (Double, Double, Double) ], [ (Double, Double, Double) ])
                       deriving (Show)
 
-randomM :: (g -> (a, g)) -> State g a
-randomM generator = do
-  g <- get
-  let (n, g') = generator g
-  put g'
-  return n
-
 replicate3 :: a -> (a, a, a)
 replicate3 a = (a, a, a)
 

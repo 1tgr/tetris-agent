@@ -19,13 +19,6 @@ data MarkovIndividual = MarkovIndividual
                         }
                         deriving (Show)
 
-randomM :: (g -> (a, g)) -> State g a
-randomM generator = do
-    g <- get
-    let (n, g') = generator g
-    put g'
-    return n
-
 randomArray :: (Bounded a, Ix a) => State g b -> State g (Array a b)
 randomArray generator =
     (sequence $ replicate (rangeSize indexRange) generator) >>= return . listArray indexRange
