@@ -7,7 +7,7 @@ import Random
 import Tetris.Engine
 import Tetris.Evolution
 
-data MarkovState = MarkovState (PieceCode, PieceCode, PieceCode)
+data MarkovState = MarkovState (PieceCode, PieceCode, PieceCode, PieceCode)
                    deriving (Bounded, Eq, Ix, Ord, Show)
 
 data MarkovIndividual = MarkovIndividual
@@ -31,8 +31,8 @@ mutateArray generator a = do
     return $ array (minBound, maxBound) $ map f $ assocs a
 
 pushState :: PieceCode -> MarkovState -> MarkovState
-pushState s4 (MarkovState (_, s2, s3)) =
-    MarkovState (s2, s3, s4)
+pushState s5 (MarkovState (_, s2, s3, s4)) =
+    MarkovState (s2, s3, s4, s5)
 
 instance Individual MarkovIndividual where
     player individual pieceCode board =
@@ -43,7 +43,7 @@ instance Individual MarkovIndividual where
               rotation = (!state) $ rotations individual
 
     randomIndividual g =
-        (MarkovIndividual { lastState = MarkovState (I, I, I), lastPosition = 5, offsets = offsets, rotations = rotations }, g')
+        (MarkovIndividual { lastState = minBound, lastPosition = 5, offsets = offsets, rotations = rotations }, g')
         where zob = do
                     offsets <- randomArray (randomM $ randomR (-5, 5))
                     rotations <- randomArray (randomM $ random)
