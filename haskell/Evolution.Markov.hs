@@ -19,24 +19,19 @@ data MarkovIndividual = MarkovIndividual
                         }
                         deriving (Show)
 
-randomList :: (g -> (b, g)) -> Int -> State g [ b ]
-randomList _ 0 =
-    return [ ]
-
-randomList generator n = do
+randomM :: (g -> (a, g)) -> State g a
+randomM generator = do
     g <- get
-    let (item, g') = generator g
+    let (n, g') = generator g
     put g'
-    items <- randomList generator (n - 1)
-    return $ item : items
+    return n
 
-randomArray :: (Bounded a, Bounded b, Enum b, Ix a, RandomGen g) => (g -> (b, g)) -> State g (Array a b)
-randomArray generator = do
-    items <- randomList generator $ rangeSize indexRange
-    return $ listArray indexRange items
+randomArray :: (Bounded a, Ix a) => State g b -> State g (Array a b)
+randomArray generator =
+    (sequence $ replicate (rangeSize indexRange) generator) >>= return . listArray indexRange
     where indexRange = (minBound, maxBound)
 
-mutateArray :: (Bounded a, Bounded b, Enum b, Ix a, Num b, RandomGen g) => (g -> (b, g)) -> Array a b -> State g (Array a b)
+mutateArray :: (Bounded a, Ix a, Num b) => (State g b) -> Array a b -> State g (Array a b)
 mutateArray generator a = do
     changes <- randomArray generator
     let f (a, b) = (a, b + changes!a)
@@ -57,11 +52,11 @@ instance Individual MarkovIndividual where
     randomIndividual g =
         (MarkovIndividual { lastState = MarkovState (I, I, I), lastPosition = 5, offsets = offsets, rotations = rotations }, g')
         where zob = do
-                    offsets <- randomArray (randomR (-5, 5))
-                    rotations <- randomArray random
+                    offsets <- randomArray (randomM $ randomR (-5, 5))
+                    rotations <- randomArray (randomM $ random)
                     return (offsets, rotations)
               ((offsets, rotations), g') = runState zob g
 
     mutateIndividual individual @ (MarkovIndividual { offsets = offsets }) g = 
         (individual { offsets = offsets' }, g')
-        where (offsets', g') = runState (mutateArray (randomR (-5, 5)) offsets) g
+        where (offsets', g') = runState (mutateArray (randomM $ randomR (-5, 5)) offsets) $ g
