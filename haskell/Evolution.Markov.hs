@@ -1,6 +1,7 @@
 module Tetris.Evolution.Markov where
 
 import Array
+import Control.Monad.State.Lazy
 import Debug.Trace
 import Random
 import Tetris.Engine
@@ -18,30 +19,28 @@ data MarkovIndividual = MarkovIndividual
                         }
                         deriving (Show)
 
-randomArray :: (Bounded a, Bounded b, Enum b, Ix a, RandomGen g) => (g -> (b, g)) -> g -> (g, Array a b)
-randomArray generator g =
-    (g', listArray indexRange items)
-    where
-        indexRange = (minBound, maxBound)
-        (g', items) = randomItems g $ rangeSize indexRange
+randomList :: (g -> (b, g)) -> Int -> State g [ b ]
+randomList _ 0 =
+    return [ ]
 
-        randomItems g 0 =
-            (g, [ ])
+randomList generator n = do
+    g <- get
+    let (item, g') = generator g
+    put g'
+    items <- randomList generator (n - 1)
+    return $ item : items
 
-        randomItems g n =
-            (g'', item : items)
-            where
-                (g', items) = randomItems g (n - 1)
-                (item, g'') = generator g'
+randomArray :: (Bounded a, Bounded b, Enum b, Ix a, RandomGen g) => (g -> (b, g)) -> State g (Array a b)
+randomArray generator = do
+    items <- randomList generator $ rangeSize indexRange
+    return $ listArray indexRange items
+    where indexRange = (minBound, maxBound)
 
-mutateArray :: (Bounded a, Bounded b, Enum b, Ix a, Num b, RandomGen g) => (g -> (b, g)) -> g -> Array a b -> (g, Array a b)
-mutateArray generator g a =
-    (g', a')
-    where
-        (g', changes) = randomArray generator g
-        indexRange = (minBound, maxBound)
-        a' = array indexRange $ map f $ assocs a
-        f (a, b) = (a, b + changes!a)
+mutateArray :: (Bounded a, Bounded b, Enum b, Ix a, Num b, RandomGen g) => (g -> (b, g)) -> Array a b -> State g (Array a b)
+mutateArray generator a = do
+    changes <- randomArray generator
+    let f (a, b) = (a, b + changes!a)
+    return $ array (minBound, maxBound) $ map f $ assocs a
 
 pushState :: PieceCode -> MarkovState -> MarkovState
 pushState s4 (MarkovState (_, s2, s3)) =
@@ -50,19 +49,19 @@ pushState s4 (MarkovState (_, s2, s3)) =
 instance Individual MarkovIndividual where
     player individual pieceCode board =
         (individual { lastState = state, lastPosition = position }, position, rotation)
-        where
-            state = pushState pieceCode $ lastState individual
-            offset = (!state) $ offsets individual
-            position = (abs $ offset + lastPosition individual) `mod` 10
-            rotation = (!state) $ rotations individual
+        where state = pushState pieceCode $ lastState individual
+              offset = (!state) $ offsets individual
+              position = (abs $ offset + lastPosition individual) `mod` 10
+              rotation = (!state) $ rotations individual
 
     randomIndividual g =
-        (g'', MarkovIndividual { lastState = MarkovState (I, I, I), lastPosition = 5, offsets = offsets, rotations = rotations })
-        where
-            (g', offsets) = randomArray (randomR (-5, 5)) g
-            (g'', rotations) = randomArray random g'
+        (g', MarkovIndividual { lastState = MarkovState (I, I, I), lastPosition = 5, offsets = offsets, rotations = rotations })
+        where zob = do
+                    offsets <- randomArray (randomR (-5, 5))
+                    rotations <- randomArray random
+                    return (offsets, rotations)
+              ((offsets, rotations), g') = runState zob g
 
     mutateIndividual g individual @ (MarkovIndividual { offsets = offsets }) = 
         (g', individual { offsets = offsets' })
-        where
-            (g', offsets') = mutateArray (randomR (-5, 5)) g offsets
+        where (offsets', g') = runState (mutateArray (randomR (-5, 5)) offsets) g
