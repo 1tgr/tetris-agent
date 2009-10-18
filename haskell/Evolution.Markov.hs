@@ -55,13 +55,13 @@ instance Individual MarkovIndividual where
               rotation = (!state) $ rotations individual
 
     randomIndividual g =
-        (g', MarkovIndividual { lastState = MarkovState (I, I, I), lastPosition = 5, offsets = offsets, rotations = rotations })
+        (MarkovIndividual { lastState = MarkovState (I, I, I), lastPosition = 5, offsets = offsets, rotations = rotations }, g')
         where zob = do
                     offsets <- randomArray (randomR (-5, 5))
                     rotations <- randomArray random
                     return (offsets, rotations)
               ((offsets, rotations), g') = runState zob g
 
-    mutateIndividual g individual @ (MarkovIndividual { offsets = offsets }) = 
-        (g', individual { offsets = offsets' })
+    mutateIndividual individual @ (MarkovIndividual { offsets = offsets }) g = 
+        (individual { offsets = offsets' }, g')
         where (offsets', g') = runState (mutateArray (randomR (-5, 5)) offsets) g

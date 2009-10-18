@@ -8,8 +8,8 @@ import Tetris.Engine
 
 class Show i => Individual i where
     player :: i -> PieceCode -> Board -> (i, Int, Rotation)
-    randomIndividual :: RandomGen g => g -> (g, i)
-    mutateIndividual :: RandomGen g => g -> i -> (g, i)
+    randomIndividual :: RandomGen g => g -> (i, g)
+    mutateIndividual :: RandomGen g => i -> g -> (i, g)
 
 type Population i = [ (i, (Int, Int, Int)) ]
 
@@ -35,7 +35,7 @@ randomPopulation g 0 =
 randomPopulation g count =
     (g'', (individual, fitness individual) : individuals)
     where
-        (g', individual) = randomIndividual g
+        (individual, g') = randomIndividual g
         (g'', individuals) = randomPopulation g' (count - 1)
 
 mutatePopulation :: (Individual i, RandomGen g) => (g, Population i) -> Int -> (g, Population i)
@@ -51,7 +51,7 @@ mutatePopulation (g, population) generation =
         mutatePopulationInner (g, population) count =
             (g'', (individual, fitness individual) : population')
             where
-                (g', individual) = mutateIndividual g $ fst fittest
+                (individual, g') = mutateIndividual (fst fittest) g
                 (g'', population') = mutatePopulationInner (g', population) (count - 1)
 
 evolver :: (Individual i, RandomGen g) => (g, Population i) -> Int -> (g, Population i)

@@ -1,5 +1,6 @@
 module Tetris.Evolution.Poly where
-  
+
+import Control.Monad.State.Lazy  
 import Random
 import Tetris.Engine
 import Tetris.Evolution
@@ -7,19 +8,33 @@ import Tetris.Evolution
 data PolyIndividual = PolyIndividual ([ (Double, Double, Double) ], [ (Double, Double, Double) ])
                       deriving (Show)
 
-randomFactor :: RandomGen g => g -> (g, (Double, Double, Double))
-randomFactor g =
-    (g''', (a - 0.5, b - 0.5, c - 0.5))
-    where
-        (a, g') = random g
-        (b, g'') = random g'
-        (c, g''') = random g''
+randomM :: (g -> (a, g)) -> State g a
+randomM generator = do
+  g <- get
+  let (n, g') = generator g
+  put g'
+  return n
 
-mutateFactor :: RandomGen g => g -> (Double, Double, Double) -> (g, (Double, Double, Double))
-mutateFactor g (a, b, c) =
-    (g', (a + a', b + b', c + c'))
-    where
-        (g', (a', b', c')) = randomFactor g
+randomFactor :: Fractional a => (State g a) -> State g (a, a, a)
+randomFactor generator = do
+    a <- generator
+    b <- generator
+    c <- generator
+    return (a, b, c)
+
+mutateFactor :: Num a => (State g (a, a, a)) -> (a, a, a) -> State g (a, a, a)
+mutateFactor generator (a, b, c) = do
+    (a', b', c') <- generator
+    return (a + a', b + b', c + c')
+
+mutateList :: (a -> State g a) -> [ a ] -> State g [ a ]
+mutateList _ [ ] =
+    return [ ]
+
+mutateList mutator (x : xs) = do
+    x' <- mutator x
+    xs' <- mutateList mutator xs
+    return $ x' : xs'
 
 instance Individual PolyIndividual where
     player individual @ (PolyIndividual (positionFactors, rotationFactors)) pieceCode board =
@@ -34,30 +49,22 @@ instance Individual PolyIndividual where
             position = (truncate $ sum $ zipWith applyFactors d positionFactors) `mod` 10
             rotation = toEnum $ (truncate $ sum $ zipWith applyFactors d rotationFactors) `mod` 4
 
-    randomIndividual g =
-        randomIndividual' g 10
-        where
-            randomIndividual' g 0 =
-                (g, PolyIndividual ([ ], [ ]))
+    randomIndividual = 
+      runState zob
+      where r = randomFactor $ randomM $ randomR (-0.5, 0.5)
+            zob = randomIndividual' 10
+            randomIndividual' 0 = return $ PolyIndividual ([ ], [ ])
 
-            randomIndividual' g count =
-                (g''', PolyIndividual (positionFactor : positionFactors, rotationFactor : rotationFactors))
-                where
-                    (g', positionFactor) = randomFactor g
-                    (g'', rotationFactor) = randomFactor g'
-                    (g''', PolyIndividual (positionFactors, rotationFactors)) = randomIndividual' g'' (count - 1)
+            randomIndividual' count = do
+                                      positionFactor <- r
+                                      rotationFactor <- r
+                                      PolyIndividual (positionFactors, rotationFactors) <- randomIndividual' $ count - 1
+                                      return $ PolyIndividual (positionFactor : positionFactors, rotationFactor : rotationFactors)
 
-    mutateIndividual g (PolyIndividual (positions, rotations)) = 
-        (g'', PolyIndividual (positions', rotations'))
-        where
-            (g', positions') = mutateList g positions
-            (g'', rotations') = mutateList g' rotations
-            
-            mutateList g [ ] =
-                (g, [ ])
-
-            mutateList g (x : xs) =
-                (g'', x' : xs')
-                where
-                    (g', x') = mutateFactor g x
-                    (g'', xs') = mutateList g' xs
+    mutateIndividual (PolyIndividual (positions, rotations)) = 
+        runState zob
+        where m = mutateList $ mutateFactor $ randomFactor $ randomM $ randomR (-0.5, 0.5)
+              zob = do
+                    positions' <- m positions
+                    rotations' <- m rotations
+                    return $ PolyIndividual (positions', rotations')
