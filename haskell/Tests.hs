@@ -31,7 +31,7 @@ main =
                     (score, turns, board) = evalState (playGame randomPlayer g) g in
                 score ~?= 0,
 
-            "MarkovIndividual should work" ~: 
+            {- "MarkovIndividual should work" ~: 
                 let (population, g) = runState (randomPopulation 100) (mkStdGen 0)
 
                     population' :: Population MarkovIndividual
@@ -41,7 +41,7 @@ main =
                 in do
                     putStrLn ""
                     putStrLn $ show fittest
-                    return (),
+                    return (), -}
 
             "PolyIndividual should work" ~: 
                 let (population, g) = runState (randomPopulation 100) (mkStdGen 0)
