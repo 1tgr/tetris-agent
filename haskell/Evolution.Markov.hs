@@ -35,21 +35,20 @@ pushState s5 (MarkovState (_, s2, s3, s4)) =
     MarkovState (s2, s3, s4, s5)
 
 instance Individual MarkovIndividual where
-    player individual pieceCode board =
-        (individual { lastState = state, lastPosition = position }, position, rotation)
-        where state = pushState pieceCode $ lastState individual
-              offset = (!state) $ offsets individual
-              position = (abs $ offset + lastPosition individual) `mod` 10
-              rotation = (!state) $ rotations individual
+    player pieceCode board = do
+        individual <- get
+        let state = pushState pieceCode $ lastState individual
+            offset = (!state) $ offsets individual
+            position = (abs $ offset + lastPosition individual) `mod` 10
+            rotation = (!state) $ rotations individual
+        put $ individual { lastState = state, lastPosition = position }
+        return (position, rotation)
 
-    randomIndividual g =
-        (MarkovIndividual { lastState = minBound, lastPosition = 5, offsets = offsets, rotations = rotations }, g')
-        where zob = do
-                    offsets <- randomArray (randomM $ randomR (-5, 5))
-                    rotations <- randomArray (randomM $ random)
-                    return (offsets, rotations)
-              ((offsets, rotations), g') = runState zob g
+    randomIndividual = do
+        offsets <- randomArray (randomM $ randomR (-5, 5))
+        rotations <- randomArray (randomM $ random)
+        return $ MarkovIndividual { lastState = minBound, lastPosition = 5, offsets = offsets, rotations = rotations }
 
-    mutateIndividual individual @ (MarkovIndividual { offsets = offsets }) g = 
-        (individual { offsets = offsets' }, g')
-        where (offsets', g') = runState (mutateArray (randomM $ randomR (-5, 5)) offsets) $ g
+    mutateIndividual individual @ (MarkovIndividual { offsets = offsets }) =do
+        offsets' <- mutateArray (randomM $ randomR (-5, 5)) offsets
+        return $ individual { offsets = offsets' }

@@ -181,21 +181,20 @@ updateBoard piece board position = do
                 bottom = drop (row + pieceLength - 1) board
                 pieceLength = length piece
 
-playGame :: RandomGen g => g -> (a -> PieceCode -> Board -> (a, Int, Rotation)) -> a -> (g, Int, Int, Board)
-playGame g player state =
-    playGameInner g state (0, 0, emptyBoard)
+playGame :: RandomGen g => (PieceCode -> Board -> State a (Int, Rotation)) -> a -> State g (Int, Int, Board)
+playGame player state =
+    playGameInner state (0, 0, emptyBoard)
     where
-        playGameInner g state (score, turns, board) =
-            let
-                (pieceCode, g') = random g
-                (state', position, rotation) = player state pieceCode board
-                pieceData = rotatedPiece pieceCode rotation
-            in
-                case updateBoard pieceData board position of
+        playGameInner state (score, turns, board) = do
+            g <- get
+            let (pieceCode, g') = random g
+            put g'
+            let ((position, rotation), state') = runState (player pieceCode board) state
+            let pieceData = rotatedPiece pieceCode rotation
+            case updateBoard pieceData board position of
                 Just board' -> 
-                    let (score', board'') = collapse score board' in
-                    playGameInner g' state' (score', turns + 1, board'')
-                Nothing -> (g', score, turns, board)
+                    let (score', board'') = collapse score board' in playGameInner state' (score', turns + 1, board'')
+                Nothing -> return (score, turns, board)
 
 depths :: Board -> [ Int ]
 depths =

@@ -1,15 +1,16 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Tetris.Evolution where
   
+import Control.Monad.State.Lazy
 import Debug.Trace
 import Random
 import List
 import Tetris.Engine
 
 class Show i => Individual i where
-    player :: i -> PieceCode -> Board -> (i, Int, Rotation)
-    randomIndividual :: RandomGen g => g -> (i, g)
-    mutateIndividual :: RandomGen g => i -> g -> (i, g)
+    player :: PieceCode -> Board -> State i (Int, Rotation)
+    randomIndividual :: RandomGen g => State g i
+    mutateIndividual :: RandomGen g => i -> State g i
 
 type Population i = [ (i, (Int, Int, Int)) ]
 
@@ -17,46 +18,34 @@ fitness :: Individual i => i -> (Int, Int, Int)
 fitness individual =
     (totalScore * totalTurns, totalScore, totalTurns)
     where
-        playGames g 0 =
-            (g, 1, 1)
+        playGames 0 =
+            return (1, 1)
 
-        playGames g count =
-            (g'', score + score', turns + turns')
-            where
-                (g', score', turns', _) = playGame g player individual
-                (g'', score, turns) = playGames g' (count - 1)
+        playGames count = do
+            (score', turns', _) <- playGame player individual
+            (score, turns) <- playGames (count - 1)
+            return (score + score', turns + turns')
 
-        (_, totalScore, totalTurns) = playGames (mkStdGen 0) 100
+        (totalScore, totalTurns) = evalState (playGames 100) (mkStdGen 0) 
 
-randomPopulation :: (Individual i, RandomGen g) => g -> Int -> (g, Population i)
-randomPopulation g 0 =
-    (g, [ ])
+randomPopulation :: (Individual i, RandomGen g) => Int -> State g (Population i)
+randomPopulation = sequence . (flip replicate $ randomIndividual >>= \individual -> return (individual, fitness individual))
 
-randomPopulation g count =
-    (g'', (individual, fitness individual) : individuals)
-    where
-        (individual, g') = randomIndividual g
-        (g'', individuals) = randomPopulation g' (count - 1)
-
-mutatePopulation :: (Individual i, RandomGen g) => (g, Population i) -> Int -> (g, Population i)
-mutatePopulation (g, population) generation =
-    mutatePopulationInner (g, [ fittest ]) $ trace ("Generation " ++ (show generation) ++ ": " ++ (show $ snd fittest)) $ (count - 1)
+mutatePopulation :: (Individual i, RandomGen g) => Int -> Population i -> State g (Population i)
+mutatePopulation generation population =
+    mutatePopulationInner (count - 1) $ trace ("Generation " ++ (show generation) ++ ": " ++ (show $ snd fittest)) $ [ fittest ]
     where
         fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
         count = length population
 
-        mutatePopulationInner state 0 =
-            state
+        mutatePopulationInner 0 population = 
+            return population
 
-        mutatePopulationInner (g, population) count =
-            (g'', (individual, fitness individual) : population')
-            where
-                (individual, g') = mutateIndividual (fst fittest) g
-                (g'', population') = mutatePopulationInner (g', population) (count - 1)
+        mutatePopulationInner count population = do
+            individual <- mutateIndividual $ fst fittest
+            population' <- mutatePopulationInner (count - 1) population
+            return $ (individual, fitness individual) : population'
 
-evolver :: (Individual i, RandomGen g) => (g, Population i) -> Int -> (g, Population i)
-evolver state 0 =
-    state
-
-evolver state iterations =
-    evolver (mutatePopulation state (1000 - iterations)) (iterations - 1)
+evolver :: (Individual i, RandomGen g) => Int -> Population i -> State g (Population i)
+evolver 0 population = return population
+evolver iterations population = mutatePopulation (1000 - iterations) population >>= evolver (iterations - 1)

@@ -1,5 +1,6 @@
 module Main where
 
+import Control.Monad.State.Lazy
 import HUnit
 import List
 import Random
@@ -26,32 +27,29 @@ main =
             "Given partial board, should update with central piece" ~: updateBoard (piece O) partialBoard 4 ~?= Just partialBoardWithPiece,
 
             "randomPlayer should work" ~:
-                let
-                    g = mkStdGen 0
-                    (_, score, turns, board) = playGame g randomPlayer g in
+                let g = mkStdGen 0
+                    (score, turns, board) = evalState (playGame randomPlayer g) g in
                 score ~?= 0,
 
             "MarkovIndividual should work" ~: 
-                let
-                    state = randomPopulation (mkStdGen 0) 100
+                let (population, g) = runState (randomPopulation 100) (mkStdGen 0)
 
-                    population :: Population MarkovIndividual
-                    population = snd $ evolver state 1000
+                    population' :: Population MarkovIndividual
+                    population' = evalState (evolver 1000 population) g
 
-                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
+                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population'
                 in do
                     putStrLn ""
                     putStrLn $ show fittest
                     return (),
 
             "PolyIndividual should work" ~: 
-                let
-                    state = randomPopulation (mkStdGen 0) 100
+                let (population, g) = runState (randomPopulation 100) (mkStdGen 0)
 
-                    population :: Population PolyIndividual
-                    population = snd $ evolver state 1000
+                    population' :: Population PolyIndividual
+                    population' = evalState (evolver 1000 population) g
 
-                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
+                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population'
                 in do
                     putStrLn ""
                     putStrLn $ show fittest
