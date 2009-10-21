@@ -45,10 +45,10 @@ instance Individual MarkovIndividual where
         return (position, rotation)
 
     randomIndividual = do
-        offsets' <- randomArray (randomM $ randomR (-5, 5))
-        rotations' <- randomArray (randomM $ random)
+        offsets' <- randomArray State { runState = randomR (-5, 5) }
+        rotations' <- randomArray State { runState = random }
         return $ MarkovIndividual { lastState = minBound, lastPosition = 5, offsets = offsets', rotations = rotations' }
 
     mutateIndividual individual @ (MarkovIndividual { offsets = offsets' }) =do
-        offsets'' <- mutateArray (randomM $ randomR (-5, 5)) offsets'
+        offsets'' <- mutateArray State { runState = randomR (-5, 5) } offsets'
         return $ individual { offsets = offsets'' }

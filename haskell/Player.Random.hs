@@ -6,7 +6,7 @@ import Tetris.Engine
 
 randomPlayer :: RandomGen g => PieceCode -> Board -> State g (Int, Rotation)
 randomPlayer pieceCode board = do
-    rotation <- randomM random
+    rotation <- State { runState = random }
     let pieceData = rotatedPiece pieceCode rotation
         pieceWidth = maximum $ map length pieceData
         (_, position, _) = foldl f (0, 0, 0) $ take (boardWidth - pieceWidth + 1) $ depths board

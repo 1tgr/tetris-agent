@@ -34,8 +34,7 @@ instance Individual PolyIndividual where
         where m = sequence 
                 $ replicate 10 
                 $ sequence3 . replicate3 
-                $ randomM 
-                $ randomR (-0.5, 0.5)
+                $ State { runState = randomR (-0.5, 0.5) }
 
     mutateIndividual (PolyIndividual (positions, rotations)) = do
         positions' <- m positions
@@ -44,5 +43,4 @@ instance Individual PolyIndividual where
         where m = mapM 
                 $ mutateFactor 
                 $ sequence3 . replicate3 
-                $ randomM 
-                $ randomR (-0.5, 0.5)
+                $ State { runState = randomR (-0.5, 0.5) }

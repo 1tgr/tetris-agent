@@ -186,17 +186,16 @@ updateBoard piece board position = do
                 pieceLength = length piece
 
 playGame :: RandomGen g => (PieceCode -> Board -> State a (Int, Rotation)) -> a -> State g (Int, Int, Board)
-playGame player = playGameInner (0, 0, emptyBoard)
-    where playGameInner (score, turns, board) state = do
-            g <- get
+playGame player state = State { runState = \g -> evalState (playGameInner (0, 0, emptyBoard) g) state }
+    where playGameInner (score, turns, board) g = do
             let (pieceCode, g') = random g
-            put g'
-            let ((position, rotation), state') = runState (player pieceCode board) state
+            (position, rotation) <- player pieceCode board
             let pieceData = rotatedPiece pieceCode rotation
             case updateBoard pieceData board position of
                 Just board' -> 
-                    let (board'', score') = collapse board' score in playGameInner (score', turns + 1, board'') state'
-                Nothing -> return (score, turns, board)
+                    let (board'', score') = collapse board' score in
+                    playGameInner (score', turns + 1, board'') g'
+                Nothing -> return ((score, turns, board), g')
 
 depths :: Board -> [ Int ]
 depths = depthsInner 0
@@ -205,10 +204,3 @@ depths = depthsInner 0
           depthsInner row [ x ] = rowDepths row x
           depthsInner row (x : xs) = zipWith min (rowDepths row x) $ depthsInner (row + 1) xs
           rowDepths row = map (\c -> if c == '.' then 20 else row)
-
-randomM :: (g -> (a, g)) -> State g a
-randomM generator = do
-    g <- get
-    let (n, g') = generator g
-    put g'
-    return n
