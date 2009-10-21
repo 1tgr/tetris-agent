@@ -10,13 +10,17 @@ import Tetris.Evolution.Markov
 import Tetris.Evolution.Poly
 import Tetris.Player.Random
 
+piece :: PieceCode -> Piece
+piece = flip rotatedPiece $ None
+
+main :: IO Counts
 main =
     runTestTT $
         TestList
         [
-            "Given empty board, collapse should produce empty board" ~: collapse 0 emptyBoard ~?= (0, emptyBoard),
-            "Given full board, collapse should produce empty board" ~: collapse 0 fullBoard ~?= (20, emptyBoard),
-            "Given partial board, collapse should remove rull rows" ~: collapse 0 partialBoard ~?= (9, (replicate 19 emptyRow) ++ [ partialRow ]),
+            "Given empty board, collapse should produce empty board" ~: collapse emptyBoard 0 ~?= (emptyBoard, 0),
+            "Given full board, collapse should produce empty board" ~: collapse fullBoard 0 ~?= (emptyBoard, 20),
+            "Given partial board, collapse should remove rull rows" ~: collapse partialBoard 0 ~?= ((replicate 19 emptyRow) ++ [ partialRow ], 9),
             "Given empty board, piece should drop to bottom" ~: dropPiece (piece O) emptyBoard 0 ~?= Just 19,
             "Given full board, piece should not drop" ~: dropPiece (piece O) fullBoard 0 ~?= Nothing,
             "Given partial board, central piece should drop halfway" ~: dropPiece (piece O) partialBoard 4 ~?= Just 10,
@@ -28,30 +32,22 @@ main =
 
             "randomPlayer should work" ~:
                 let g = mkStdGen 0
-                    (score, turns, board) = evalState (playGame randomPlayer g) g in
+                    (score, _, _) = evalState (playGame randomPlayer g) g in
                 score ~?= 0,
 
-            {- "MarkovIndividual should work" ~: 
-                let (population, g) = runState (randomPopulation 100) (mkStdGen 0)
-
-                    population' :: Population MarkovIndividual
-                    population' = evalState (evolver 1000 population) g
-
-                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population'
+            "MarkovIndividual should work" ~: 
+                let fittest :: Fitness MarkovIndividual
+                    fittest = evalState evolve $ mkStdGen 0
                 in do
-                    putStrLn ""
+                    putStrLn "\nRunning MarkovIndividual"
                     putStrLn $ show fittest
-                    return (), -}
+                    return (),
 
             "PolyIndividual should work" ~: 
-                let (population, g) = runState (randomPopulation 100) (mkStdGen 0)
-
-                    population' :: Population PolyIndividual
-                    population' = evalState (evolver 1000 population) g
-
-                    fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population'
+                let fittest :: Fitness PolyIndividual
+                    fittest = evalState evolve $ mkStdGen 0
                 in do
-                    putStrLn ""
+                    putStrLn "\nRunning PolyIndividual"
                     putStrLn $ show fittest
                     return ()
         ]

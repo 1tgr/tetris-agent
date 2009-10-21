@@ -3,7 +3,7 @@ module Tetris.Engine where
 import Control.Monad.State.Lazy
 import Ix  
 import Random
-import Tetris.BoundedEnum
+import Tetris.BoundedEnum()
 
 type Board = [ String ]
 type Piece = [ String ]
@@ -23,15 +23,34 @@ data Rotation = None
               | TwoSeventy
               deriving (Bounded, Enum, Show)
 
+emptyRow :: [ Char ]
 emptyRow = replicate 10 '.'
+
+emptyRowWithPiece :: [ Char ]
 emptyRowWithPiece = "....oo...."
+
+emptyBoard :: Board
 emptyBoard = replicate 20 emptyRow
+
+emptyBoardWithPiece :: Board
 emptyBoardWithPiece = (replicate 18 emptyRow) ++ [ emptyRowWithPiece, emptyRowWithPiece ]
+
+fullRow :: [ Char ]
 fullRow = replicate 10 'I'
+
+fullBoard :: Board
 fullBoard = replicate 20 fullRow
+
+partialRow :: [ Char ]
 partialRow = "ssss..ssss"
+
+partialRowWithPiece :: [ Char ]
 partialRowWithPiece = "ssssoossss"
+
+partialBoard :: Board
 partialBoard = (replicate 10 emptyRow) ++ [ partialRow ] ++ (replicate 9 fullRow)
+
+partialBoardWithPiece :: Board
 partialBoardWithPiece = (replicate 9 emptyRow) ++ [ emptyRowWithPiece, partialRowWithPiece ] ++ (replicate 9 fullRow)
 
 rotatedPiece :: PieceCode -> Rotation -> Piece
@@ -110,46 +129,31 @@ rotatedPiece Z Ninety = [ ".z",
 rotatedPiece Z OneEighty = rotatedPiece Z None
 rotatedPiece Z TwoSeventy = rotatedPiece Z Ninety
 
-piece :: PieceCode -> Piece
-piece pieceCode = rotatedPiece pieceCode None
-
-collapse :: Int -> Board -> (Int, Board)
-collapse score board =
-    collapseInner [ ] score board
-    where
-        collapseInner prior score (x : xs) =
-            if any (== '.') x then
-                collapseInner (x : prior) score xs
-            else
-                collapseInner (prior ++ [ emptyRow ]) (score + 1) xs
-
-        collapseInner prior score [ ] = 
-            (score, reverse prior)
+collapse :: Board -> Int -> (Board, Int)
+collapse =
+    collapseInner [ ]
+    where collapseInner :: Board -> Board -> Int -> (Board, Int)
+          collapseInner prior (x : xs) | any (== '.') x = collapseInner (x : prior) xs
+                                       | otherwise = collapseInner (prior ++ [ emptyRow ]) xs . (+1)
+          collapseInner prior [ ] = (,) $ reverse prior
 
 dropPiece :: Piece -> Board -> Int -> Maybe Int
 dropPiece piece board position =
     case dropPieceInner (-2) $ map (drop position) $ emptyRow : emptyRow : board of
     row | row >= 0 -> Just row
     _ -> Nothing
-    where
-        dropPieceInner row boardInner @ (_ : bs) =
-            if rowsCollided piece boardInner then
-                row
-            else
-                dropPieceInner (row + 1) bs
-            where
-                rowsCollided (p : ps) (b : bs) =
-                    cellsCollided p b || rowsCollided ps bs
-                    where
-                        cellsCollided (_ : pps) ('.' : bbs) = cellsCollided pps bbs
-                        cellsCollided ('.' : pps) (_ : bbs) = cellsCollided pps bbs
-                        cellsCollided [ ] _ = False
-                        cellsCollided _ _ = True
+    where dropPieceInner row boardInner @ (_ : bs) | rowsCollided piece boardInner = row
+                                                   | otherwise = dropPieceInner (row + 1) bs
+          dropPieceInner row [ ] = row - length piece + 1
 
-                rowsCollided [ ] _ = False
-                rowsCollided _ [ ] = False
+          rowsCollided (p : ps) (b : bs) = cellsCollided p b || rowsCollided ps bs
+          rowsCollided [ ] _ = False
+          rowsCollided _ [ ] = False
 
-        dropPieceInner row [ ] = row - length piece + 1
+          cellsCollided (_ : pps) ('.' : bbs) = cellsCollided pps bbs
+          cellsCollided ('.' : pps) (_ : bbs) = cellsCollided pps bbs
+          cellsCollided [ ] _ = False
+          cellsCollided _ _ = True
 
 updateBoard :: Piece -> Board -> Int -> Maybe Board
 updateBoard piece board position = do
@@ -182,10 +186,8 @@ updateBoard piece board position = do
                 pieceLength = length piece
 
 playGame :: RandomGen g => (PieceCode -> Board -> State a (Int, Rotation)) -> a -> State g (Int, Int, Board)
-playGame player state =
-    playGameInner state (0, 0, emptyBoard)
-    where
-        playGameInner state (score, turns, board) = do
+playGame player = playGameInner (0, 0, emptyBoard)
+    where playGameInner (score, turns, board) state = do
             g <- get
             let (pieceCode, g') = random g
             put g'
@@ -193,19 +195,16 @@ playGame player state =
             let pieceData = rotatedPiece pieceCode rotation
             case updateBoard pieceData board position of
                 Just board' -> 
-                    let (score', board'') = collapse score board' in playGameInner state' (score', turns + 1, board'')
+                    let (board'', score') = collapse board' score in playGameInner (score', turns + 1, board'') state'
                 Nothing -> return (score, turns, board)
 
 depths :: Board -> [ Int ]
-depths =
-    depthsInner 0
-    where
-        depthsInner row (x : xs) =
-            case xs of
-            [ ] -> rowDepths
-            _ -> zipWith min rowDepths $ depthsInner (row + 1) xs
-            where
-                rowDepths = map (\c -> if c == '.' then 20 else row) x
+depths = depthsInner 0
+    where depthsInner :: Int -> Board -> [ Int ]
+          depthsInner _ [ ] = [ ]
+          depthsInner row [ x ] = rowDepths row x
+          depthsInner row (x : xs) = zipWith min (rowDepths row x) $ depthsInner (row + 1) xs
+          rowDepths row = map (\c -> if c == '.' then 20 else row)
 
 randomM :: (g -> (a, g)) -> State g a
 randomM generator = do
