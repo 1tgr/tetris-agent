@@ -9,13 +9,8 @@ randomPlayer pieceCode board = do
     rotation <- State { runState = random }
     let pieceData = rotatedPiece pieceCode rotation
         pieceWidth = maximum $ map length pieceData
-        (_, position, _) = foldl f (0, 0, 0) $ take (boardWidth - pieceWidth + 1) $ depths board
+        (_, position, _) = foldl saveMaxDepth (0, 0, 0) $ take (boardWidth - pieceWidth + 1) $ depths board
     return (position, rotation)
-    where
-        boardWidth = maximum $ map length board
-
-        f (maxDepth, maxPosition, position) depth =
-            if depth > maxDepth then
-                (depth, position, position + 1)
-            else
-                (maxDepth, maxPosition, position + 1)
+    where boardWidth = maximum $ map length board
+          saveMaxDepth (maxDepth, maxPosition, position) depth | depth > maxDepth = (depth, position, position + 1)
+                                                               | otherwise = (maxDepth, maxPosition, position + 1)

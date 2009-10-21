@@ -10,6 +10,30 @@ import Tetris.Evolution.Markov
 import Tetris.Evolution.Poly
 import Tetris.Player.Random
 
+emptyRowWithPiece :: String
+emptyRowWithPiece = "....oo...."
+
+emptyBoardWithPiece :: Board
+emptyBoardWithPiece = (replicate 18 emptyRow) ++ [ emptyRowWithPiece, emptyRowWithPiece ]
+
+fullRow :: String
+fullRow = replicate 10 'I'
+
+fullBoard :: Board
+fullBoard = replicate 20 fullRow
+
+partialRow :: String
+partialRow = "ssss..ssss"
+
+partialRowWithPiece :: String
+partialRowWithPiece = "ssssoossss"
+
+partialBoard :: Board
+partialBoard = (replicate 10 emptyRow) ++ [ partialRow ] ++ (replicate 9 fullRow)
+
+partialBoardWithPiece :: Board
+partialBoardWithPiece = (replicate 9 emptyRow) ++ [ emptyRowWithPiece, partialRowWithPiece ] ++ (replicate 9 fullRow)
+
 piece :: PieceCode -> Piece
 piece = flip rotatedPiece $ None
 

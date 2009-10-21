@@ -23,35 +23,11 @@ data Rotation = None
               | TwoSeventy
               deriving (Bounded, Enum, Show)
 
-emptyRow :: [ Char ]
+emptyRow :: String
 emptyRow = replicate 10 '.'
-
-emptyRowWithPiece :: [ Char ]
-emptyRowWithPiece = "....oo...."
 
 emptyBoard :: Board
 emptyBoard = replicate 20 emptyRow
-
-emptyBoardWithPiece :: Board
-emptyBoardWithPiece = (replicate 18 emptyRow) ++ [ emptyRowWithPiece, emptyRowWithPiece ]
-
-fullRow :: [ Char ]
-fullRow = replicate 10 'I'
-
-fullBoard :: Board
-fullBoard = replicate 20 fullRow
-
-partialRow :: [ Char ]
-partialRow = "ssss..ssss"
-
-partialRowWithPiece :: [ Char ]
-partialRowWithPiece = "ssssoossss"
-
-partialBoard :: Board
-partialBoard = (replicate 10 emptyRow) ++ [ partialRow ] ++ (replicate 9 fullRow)
-
-partialBoardWithPiece :: Board
-partialBoardWithPiece = (replicate 9 emptyRow) ++ [ emptyRowWithPiece, partialRowWithPiece ] ++ (replicate 9 fullRow)
 
 rotatedPiece :: PieceCode -> Rotation -> Piece
 rotatedPiece I None = [ "i",
@@ -130,8 +106,7 @@ rotatedPiece Z OneEighty = rotatedPiece Z None
 rotatedPiece Z TwoSeventy = rotatedPiece Z Ninety
 
 collapse :: Board -> Int -> (Board, Int)
-collapse =
-    collapseInner [ ]
+collapse = collapseInner [ ]
     where collapseInner :: Board -> Board -> Int -> (Board, Int)
           collapseInner prior (x : xs) | any (== '.') x = collapseInner (x : prior) xs
                                        | otherwise = collapseInner (prior ++ [ emptyRow ]) xs . (+1)
@@ -159,31 +134,23 @@ updateBoard :: Piece -> Board -> Int -> Maybe Board
 updateBoard piece board position = do
     row <- dropPiece piece board position
     return $ updateBoardInner row
-    where
-        updateBoardInner row =
-            top ++ middle ++ bottom
-            where
-                top = take (row - 1) board
-                middle =
-                    drawPiece piece $ take pieceLength $ drop (row - 1) board
-                    where
-                        drawPiece (p : ps) (b : bs) =
-                            [ left ++ centre ++ right ] ++ drawPiece ps bs
-                            where
-                                pieceWidth = length p
-                                left = take position b
-                                centre = zipWith drawCell p $ take pieceWidth $ drop position b
-                                    where
-                                        drawCell '.' bb = bb
-                                        drawCell pp _ = pp
+    where drawCell '.' bb = bb
+          drawCell pp _ = pp
 
-                                right = drop (position + pieceWidth) b
+          drawPiece (p : ps) (b : bs) = (left ++ centre ++ right) : drawPiece ps bs
+              where pieceWidth = length p
+                    left = take position b
+                    centre = zipWith drawCell p $ take pieceWidth $ drop position b
+                    right = drop (position + pieceWidth) b
 
-                        drawPiece [ ] _ = [ ]
-                        drawPiece _ [ ] = [ ]
+          drawPiece [ ] _ = [ ]
+          drawPiece _ [ ] = [ ]
 
-                bottom = drop (row + pieceLength - 1) board
-                pieceLength = length piece
+          updateBoardInner row = top ++ middle ++ bottom
+              where top = take (row - 1) board
+                    middle = drawPiece piece $ take pieceLength $ drop (row - 1) board
+                    bottom = drop (row + pieceLength - 1) board
+                    pieceLength = length piece
 
 playGame :: RandomGen g => (PieceCode -> Board -> State a (Int, Rotation)) -> a -> State g (Int, Int, Board)
 playGame player state = State { runState = \g -> evalState (playGameInner (0, 0, emptyBoard) g) state }
