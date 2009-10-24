@@ -2,6 +2,7 @@
 module Tetris.Evolution where
   
 import Control.Monad.State.Lazy
+import Control.Parallel.Strategies
 import Debug.Trace
 import Random
 import List
@@ -28,16 +29,18 @@ randomPopulation count = sequence
                        $ randomIndividual >>= return . fitness
 
 mutatePopulation :: (Individual i, RandomGen g) => Int -> Population i -> State g (Population i)
-mutatePopulation generation population = sequence 
-                                       $ (return fittest :)
-                                       $ replicate (count - 1) 
-                                       $ (mutateIndividual $ fst fittest) >>= return . fitness
-    where fittest = maximumBy (\ (_, a) (_, b) -> compare a b) population
-          message = "Generation " ++ (show generation) ++ ": " ++ (show $ snd fittest)
+mutatePopulation generation population = do
+    individuals' <- sequence $ replicate (count - 1) $ mutateIndividual fittestIndividual
+    let population' = parMap rwhnf fitness individuals'
+    return (fittest : population')
+    where fittest @ (fittestIndividual, fittestScore) = maximumBy (\ (_, a) (_, b) -> compare a b) population
+          message = "Generation " ++ (show generation) ++ ": " ++ (show $ fittestScore)
           count = trace message $ length population
 
 evolve :: (Individual i, RandomGen g) => State g (Fitness i)
 evolve = do
     initialPopulation <- randomPopulation 100
-    finalPopulation <- foldM (flip ($)) initialPopulation $ zipWith (flip ($)) [ 1 .. 1000 ] $ repeat mutatePopulation
+    finalPopulation <- foldM (flip ($)) initialPopulation 
+                    $ zipWith (flip ($)) [ 1 .. 1000 ] 
+                    $ repeat mutatePopulation
     return $ maximumBy (\ (_, a) (_, b) -> compare a b) finalPopulation
