@@ -131,9 +131,8 @@ dropPiece piece board position =
           cellsCollided _ _ = True
 
 updateBoard :: Piece -> Board -> Int -> Maybe Board
-updateBoard piece board position = do
-    row <- dropPiece piece board position
-    return $ updateBoardInner row
+updateBoard piece board position =
+    dropPiece piece board position >>= return . updateBoardInner
     where drawCell '.' bb = bb
           drawCell pp _ = pp
 
